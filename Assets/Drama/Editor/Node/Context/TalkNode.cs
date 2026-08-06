@@ -75,14 +75,6 @@ namespace Drama.Editor
             context.AddOutputPort<int>(k_ActorSlot)
                 .WithDisplayName("立绘槽位")
                 .Build();
-
-            context.AddInputPort<DramaLocalizationProt>("LocalizationProt")
-                .WithDisplayName("内容文本")
-                .Build();
-            
-            context.AddInputPort<DramaLocalizationProt>(k_SoundID)
-                .WithDisplayName("语音ID")
-                .Build();
             
         }
 
@@ -95,7 +87,17 @@ namespace Drama.Editor
                 .WithTooltip("勾选后将使用该说话人输出")
                 .Build();
         }
-        
+
+        /// <summary>
+        ///        <para>
+        /// Called when the node is created or when the graph is enabled.
+        /// </para>
+        ///      </summary>
+        public override void OnEnable()
+        {
+            base.OnEnable();
+            DefaultColor = new Color(0.95f, 0.78f, 0.35f);
+        }
     }
 }
 
