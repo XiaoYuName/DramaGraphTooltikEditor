@@ -5,11 +5,12 @@ using UnityEngine;
 namespace Drama.Editor
 {
     /// <summary>
-    /// 台词节点
+    /// 对话节点（容器）。内部可以放 <see cref="TalkTextBlock"/> 等 Block。
+    /// 继承 DramaContextNode（而不是 DramaNode）才能装 Block。
     /// </summary>
     [Node("命令/对话","Assets/Drama/Assets/Talk.png","对话")]
     [Serializable]
-    public class TalkNode : DramaNode
+    public class TalkNode : DramaContextNode
     {
         // 选项名
         const string k_Speaker    = "Speaker";
@@ -60,7 +61,6 @@ namespace Drama.Editor
                 .WithDisplayName("说话人")
                 .Build();
 
-            
             
             context.AddOutputPort<ETalkSpeaker>(k_Speaker)
                 .WithDisplayName("说话人")

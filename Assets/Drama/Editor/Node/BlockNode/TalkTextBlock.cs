@@ -11,8 +11,6 @@ namespace Drama.Editor
     
         public const string portText = "Text";
         public const string portVoice = "Voice";
-        public const string optSpeaker = "Speaker";
-        public const string optWaitMs = "WaitMs";
 
         protected override void OnDefinePorts(IPortDefinitionContext context)
         {
@@ -23,19 +21,6 @@ namespace Drama.Editor
 
             context.AddInputPort<DramaLocalizationProt>(portVoice)
                 .WithDisplayName("语音")
-                .Build();
-        }
-
-        protected override void OnDefineOptions(IOptionDefinitionContext context)
-        {
-            context.AddOption<ETalkSpeaker>(optSpeaker)
-                .WithDisplayName("说话人")
-                .WithDefaultValue(ETalkSpeaker.Aside)
-                .Build();
-
-            context.AddOption<float>(optWaitMs)
-                .WithDisplayName("自动等待(ms)")
-                .WithDefaultValue(0f)
                 .Build();
         }
 
