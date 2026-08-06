@@ -27,6 +27,7 @@ namespace Drama.Editor
         // ---- Option 名 ----
         internal const string k_CharId   = "CharId";
         internal const string k_ShowKind = "ShowKind";
+        internal const string k_ShowDirection = "ShowDirection";
         internal const string k_Reserved = "Reserved";
         internal const string k_Wait     = "Wait";
 
@@ -85,6 +86,13 @@ namespace Drama.Editor
                 .WithDisplayName("角色ID")
                 .WithDefaultValue(1)
                 .WithTooltip("角色表 id，直接导出，不做槽位换算")
+                .Delayed()
+                .Build();
+
+            context.AddOption<EActorShowDirection>(k_ShowDirection)
+                .WithDisplayName("方向")
+                .WithDefaultValue(EActorShowDirection.Left)
+                .WithTooltip("展示出现的方向")
                 .Delayed()
                 .Build();
             

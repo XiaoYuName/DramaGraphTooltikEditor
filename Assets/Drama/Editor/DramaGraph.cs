@@ -71,5 +71,15 @@ namespace Drama.Editor
         /// <summary>淡出。实测确认。</summary>
         FadeOut = 8,
     }
+
+    /// <summary>
+    /// 立绘显示方向
+    /// </summary>
+    public enum EActorShowDirection
+    {
+        Left = 0,
+        Right = 1,
+        Center = 2,
+    }
 }
 
