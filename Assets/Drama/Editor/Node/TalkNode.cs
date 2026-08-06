@@ -24,9 +24,7 @@ namespace Drama.Editor
         
         protected override void OnDefinePorts(IPortDefinitionContext context)
         {
-            context.AddInputPort<DramaLocalizationProt>("LocalizationProt")
-                .WithDisplayName("多语言")
-                .Build();
+            
             
             base.OnDefinePorts(context);
             context.AddInputPort<EBallonKind>(k_Ballon)
@@ -78,6 +76,10 @@ namespace Drama.Editor
                 .WithDisplayName("立绘槽位")
                 .Build();
 
+            context.AddInputPort<DramaLocalizationProt>("LocalizationProt")
+                .WithDisplayName("内容文本")
+                .Build();
+            
             context.AddInputPort<DramaLocalizationProt>(k_SoundID)
                 .WithDisplayName("语音ID")
                 .Build();
