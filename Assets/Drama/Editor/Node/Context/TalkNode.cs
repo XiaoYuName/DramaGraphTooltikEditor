@@ -28,8 +28,6 @@ namespace Drama.Editor
 
         protected override void OnDefinePorts(IPortDefinitionContext context)
         {
-
-
             base.OnDefinePorts(context);
             context.AddInputPort<EBallonKind>(k_Ballon)
                 .WithDisplayName("对话框动效")
@@ -87,17 +85,7 @@ namespace Drama.Editor
                     .Build();
             }
         }
-
-        /// <summary>
-        /// 「说话人」必须定义成 Option 而不是端口，原因有两条（都是实测结论）：
-        ///
-        /// 1. 改【Option 值】会自动重跑 DefineNode，改【端口内嵌值】不会 ——
-        ///    用端口的话，选了 Unknown 之后动态端口不会出现，除非手动调 DefineNode()。
-        /// 2. IPort.TryGetValue 在端口【已连线】时返回 false（值来自上游），
-        ///    所以一旦有人往「说话人」上接线，条件判断就永远失效。
-        ///
-        /// Option 没有这两个问题：值总是可读，改了就自动重建。
-        /// </summary>
+        
         protected override void OnDefineOptions(IOptionDefinitionContext context)
         {
             base.OnDefineOptions(context);

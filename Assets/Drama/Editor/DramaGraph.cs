@@ -50,8 +50,26 @@ namespace Drama.Editor
     {
         Aside = 0,      // 旁白，不显示名字条
         Hero = 1,       // 主角
-        Unknown = 3,    // 自定义
-        ActorSlot = 10, // 立绘槽位：actorIdx = IDX_ACTOR_SHIFT + slot
+        Unknown = 2,    // 自定义
+        ActorSlot = 3, // 立绘槽位：actorIdx
+    }
+
+    /// <summary>
+    /// 立绘显示方式
+    /// </summary>
+    public enum EActorShowKind
+    {
+        /// <summary>瞬时显示，无动画。值 0 未验证。</summary>
+        Show = 0,
+
+        /// <summary>瞬时隐藏，无动画。值 1 未验证。</summary>
+        Hide = 1,
+
+        /// <summary>淡入。实测确认。</summary>
+        FadeIn = 7,
+
+        /// <summary>淡出。实测确认。</summary>
+        FadeOut = 8,
     }
 }
 
