@@ -22,7 +22,6 @@ namespace Drama.Editor
         {
             GraphDatabase.PromptInProjectBrowserToCreateNewAsset<DramaGraph>(graphName);
         }
-        
     }
 
     [System.Serializable]
@@ -51,7 +50,7 @@ namespace Drama.Editor
     {
         Aside = 0,      // 旁白，不显示名字条
         Hero = 1,       // 主角
-        Unknown = 3,    // "???"
+        Unknown = 3,    // 自定义
         ActorSlot = 10, // 立绘槽位：actorIdx = IDX_ACTOR_SHIFT + slot
     }
 }

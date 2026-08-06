@@ -43,8 +43,10 @@ $noisePatterns = @(
 function Invoke-Pipe {
     param([string]$Cmd, [hashtable]$A = @{}, [int]$Retries = 3)
 
+    # ★ 参数必须嵌在 "parameters" 里。平铺在顶层会被静默忽略
+    #   （命令仍然执行，但所有参数当没传 —— 排查起来很坑）。
     $body = @{ command = $Cmd }
-    foreach ($k in $A.Keys) { $body[$k] = $A[$k] }
+    if ($A.Count -gt 0) { $body['parameters'] = $A }
     $json = $body | ConvertTo-Json -Depth 10 -Compress
 
     for ($i = 0; $i -lt $Retries; $i++) {

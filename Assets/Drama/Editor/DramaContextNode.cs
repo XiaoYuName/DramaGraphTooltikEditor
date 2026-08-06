@@ -21,11 +21,5 @@ namespace Drama.Editor
         {
             DramaNode.DefineProtPorts(context);
         }
-
-        protected override void OnDefineOptions(IOptionDefinitionContext context)
-        {
-            base.OnDefineOptions(context);
-            DramaNode.DefineCommonOptions(context);
-        }
     }
 }

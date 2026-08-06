@@ -342,8 +342,30 @@ ctx.ClearAllVisualization();
 3. `Build()` 忘了调 → 端口不会出现。
 4. 同方向端口名重复 → 后者覆盖 / 行为异常。
 5. 端口 `TryGetValue` 在**已连线**时返回 false，这是设计如此（值来自上游）。
-6. 脚本修改图必须包在 `UndoBeginRecordGraph` / `UndoEndRecordGraph` 之间，否则不进 Undo 栈且视图不刷新。
+6. **★ 用代码改图（包括改选项/端口的值）必须包在 `UndoBeginRecordGraph` / `UndoEndRecordGraph` 之间，否则会被静默还原。**
+   实测（2026-08-06，6000.7.0a3）：不包 Undo 时 `INodeOption.TrySetValue` 返回 true、立刻 `TryGetValue` 也读得到新值，
+   但下一次 `DefineNode` 重建选项时会**还原成 `WithDefaultValue` 的默认值**，界面上永远看不到变化。
+   `UndoEndRecordGraph` 才会把改动提交进图模型并刷新视图。包了 Undo 的写入能活过域重载（即真正序列化了）。
 7. `[Graph]` 的扩展名必须全项目唯一（Unity 靠它选 importer）。
+8. **★ `OnGraphChanged` 在图加载期间就会被调用，那时 `DefineNode` 还没建出节点选项** ——
+   此时 `GetNodeOptionByName(...)` 返回 `null`，在 `OnGraphChanged` 里同步读写选项会把所有节点都跳过。
+   正确做法是**延到下一个编辑器 tick**：
+
+   ```csharp
+   static bool s_Running, s_Scheduled;
+
+   internal static void Schedule(Graph graph)
+   {
+       if (s_Running || s_Scheduled) return;
+       s_Scheduled = true;
+       EditorApplication.delayCall += () => { s_Scheduled = false; DoWork(graph); };
+   }
+   ```
+
+   另外 `UndoEndRecordGraph` 会**再触发一次 `OnGraphChanged`**，所以在 `OnGraphChanged` 里写图必须加防重入标志，
+   否则无限递归。再配合 `Graph.OnEnable` 也排一次，可以兜住"图打开时数据就是脏的、之后没人改动"的情况。
+9. **`graph.GetNodes()` 拿不到 `ContextNode` 内部的 `BlockNode`** —— 它只返回画布上的顶层节点。
+   要全量遍历得自己下潜一层（`node is ContextNode ctx` → `ctx.BlockNodes`）。烘焙和校验都会踩到。
 
 ---
 
