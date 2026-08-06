@@ -41,24 +41,24 @@ namespace Drama.Editor
             base.OnDefinePorts(context);
 
             // 位置和缩放做成端口，方便多个节点共用同一套位姿（接同一个变量节点）
-            context.AddInputPort<Vector2Int>(k_Pos)
+            context.AddInputPort<Vector2>(k_Pos)
                 .WithDisplayName("位置")
-                .WithDefaultValue(Vector2Int.zero)
-                .WithTooltip("立绘位置，可负")
+                .WithDefaultValue(Vector2.zero)
+                .WithTooltip("立绘位置")
                 .Build();
 
-            context.AddOutputPort<Vector2Int>(k_Pos)
+            context.AddOutputPort<Vector2>(k_Pos)
                 .WithDisplayName("位置")
                 .Build();
 
-            context.AddInputPort<Vector2Int>(k_Scale)
-                .WithDisplayName("缩放(%)")
-                .WithDefaultValue(new Vector2Int(100, 100))
-                .WithTooltip("百分比，100 = 原始大小")
+            context.AddInputPort<Vector2>(k_Scale)
+                .WithDisplayName("缩放")
+                .WithDefaultValue(new Vector2(100, 100))
+                .WithTooltip("大小比例")
                 .Build();
 
-            context.AddOutputPort<Vector2Int>(k_Scale)
-                .WithDisplayName("缩放(%)")
+            context.AddOutputPort<Vector2>(k_Scale)
+                .WithDisplayName("缩放")
                 .Build();
 
             // ---- 动态端口：只有带动画的显示方式才需要时长 ----
@@ -87,9 +87,7 @@ namespace Drama.Editor
                 .WithTooltip("角色表 id，直接导出，不做槽位换算")
                 .Delayed()
                 .Build();
-
-            // ★ 显示方式必须是 Option —— 它驱动「时长」动态端口。
-            //   端口内嵌值的改动不会触发 DefineNode 重建，只有 Option 会。
+            
             context.AddOption<EActorShowKind>(k_ShowKind)
                 .WithDisplayName("显示方式")
                 .WithDefaultValue(EActorShowKind.FadeIn)
