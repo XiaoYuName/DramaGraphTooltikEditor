@@ -16,14 +16,14 @@ namespace Drama.Editor
         
         protected override void OnDefinePorts(IPortDefinitionContext context)
         {
-            context.AddInputPort<DramaProt>(NodeProtName)
+            context.AddInputPort(NodeProtName)
                 .WithConnectorUI(PortConnectorUI.Arrowhead)
-                .WithDisplayName("Prot")
+                .WithDisplayName("输入")
                 .Build();
             
-            context.AddOutputPort<DramaProt>(NodeProtName)
+            context.AddOutputPort(NodeProtName)
                 .WithConnectorUI(PortConnectorUI.Arrowhead)
-                .WithDisplayName("Prot")
+                .WithDisplayName("输出")
                 .Build();
         }
 
@@ -32,7 +32,7 @@ namespace Drama.Editor
             base.OnDefineOptions(context);
             context.AddOption<long>(EventIDName)
                 .WithDefaultValue(-1)
-                .WithTooltip("事件的唯一ID")
+                .WithTooltip("事件ID")
                 .Build();
         }
         

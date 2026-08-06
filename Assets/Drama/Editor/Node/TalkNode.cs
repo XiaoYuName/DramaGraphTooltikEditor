@@ -1,4 +1,5 @@
 using System;
+using Unity.GraphToolkit.Editor;
 using UnityEngine;
 
 namespace Drama.Editor
@@ -6,6 +7,7 @@ namespace Drama.Editor
     /// <summary>
     /// 台词节点
     /// </summary>
+    [Node("命令/对话","Assets/Drama/Assets/Talk.png","对话")]
     [Serializable]
     public class TalkNode : DramaNode
     {

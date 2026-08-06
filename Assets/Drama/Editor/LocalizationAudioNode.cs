@@ -1,18 +1,17 @@
 using Unity.GraphToolkit.Editor;
-using UnityEngine;
 
 namespace Drama.Editor
 {
-    [Node("功能/多语言","Assets/Drama/Assets/Localization.png","文本")]
+    [Node("功能/多语言","Assets/Drama/Assets/Localization.png","语音")]
     [System.Serializable]
-    public class LocalizationNode : Node
+    public class LocalizationAudioNode : Node
     {
         public const string localizationTable = "LocalizationTable";
         public const string localizationKey = "LocalizationKey";
         public const string value = "value";
         public const string localizationTableName = "多语言表";
         public const string localizationKeyName = "多语言键";
-        public const string localizationValueName = "内容";
+        public const string localizationValueName = "语音";
         
         protected override void OnDefinePorts(IPortDefinitionContext context)
         {
@@ -29,6 +28,7 @@ namespace Drama.Editor
                 .WithDisplayName(localizationValueName)
                 .Build();
         }
+    
     }
 }
 

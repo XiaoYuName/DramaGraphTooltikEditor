@@ -24,19 +24,6 @@ namespace Drama.Editor
         }
         
     }
-    
-    [Serializable]
-    public class DramaProt
-    {
-        /// <summary>
-        /// 剧情ID
-        /// </summary>
-        public long DramaId;
-        /// <summary>
-        /// 事件ID
-        /// </summary>
-        public long DramaEventID;
-    }
 
     [System.Serializable]
     public class DramaLocalizationProt

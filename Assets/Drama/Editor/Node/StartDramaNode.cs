@@ -3,6 +3,8 @@ using UnityEngine;
 
 namespace Drama.Editor
 {
+    [Node("启动/启动","Assets/Drama/Assets/Start.png","进入")]
+    [System.Serializable]
     public class StartDramaNode : Node
     {
         protected override void OnDefinePorts(IPortDefinitionContext context)
@@ -12,10 +14,8 @@ namespace Drama.Editor
                 .WithConnectorUI(PortConnectorUI.Arrowhead)
                 .WithDisplayName("剧情ID")
                 .Build();
-            context.AddOutputPort<DramaProt>(DramaNode.NodeProtName)
-                .WithConnectorUI(PortConnectorUI.Arrowhead)
-                .WithDisplayName("Prot")
-                .Build();
+
+            context.AddOutputPort("Output");
         }
 
         protected override void OnDefineOptions(IOptionDefinitionContext context)
