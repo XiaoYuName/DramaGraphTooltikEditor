@@ -3,13 +3,15 @@ using UnityEngine;
 
 namespace Drama.Editor
 {
-    [Node("启动/启动","Assets/Drama/Assets/Start.png","进入")]
+    [Node("终端","Assets/Drama/Assets/Start.png","进入")]
     [System.Serializable]
     public class StartDramaNode : Node
     {
+        public const string DramaID = "DramaID";
+        
         protected override void OnDefinePorts(IPortDefinitionContext context)
         {
-            context.AddInputPort<long>("DramaID")
+            context.AddInputPort<long>(DramaID)
                 .WithDefaultValue(-1)
                 .WithConnectorUI(PortConnectorUI.Arrowhead)
                 .WithDisplayName("剧情ID")

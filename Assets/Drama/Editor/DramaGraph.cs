@@ -81,6 +81,28 @@ namespace Drama.Editor
         Right = 1,
         Center = 2,
     }
+    
+    public enum ShakeAxis
+    {
+        PositionXY,   // Position   —— 原实现唯一被指令用到的
+        PositionZ,    // PositionZ  —— 代码里有，指令没开放
+        Rotation,     // Angles     —— 代码里有，指令没开放
+    }
+
+    public enum TransitionKind
+    {
+        None = 0,
+        Fade = 1,
+        VenetianBlind = 2,
+        Comb = 3,
+    }
+
+    public enum InputKind
+    {
+        In = 1,
+        Out = 2,
+        InOut = 3,
+    }
 
     public enum EDramaScreenEff
     {

@@ -5,7 +5,7 @@ namespace Drama.Editor
 {
     [System.Serializable]
     [Node("命令/场景","Assets/Drama/Assets/Screen.png","场景")]
-    public class ScreenEffNode : DramaNode
+    public class ScreenEffNode : DramaContextNode
     {
         protected override void OnDefineOptions(IOptionDefinitionContext context)
         {

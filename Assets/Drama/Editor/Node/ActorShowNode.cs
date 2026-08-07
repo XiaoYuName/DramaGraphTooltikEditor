@@ -1,4 +1,5 @@
 using System;
+using DG.Tweening;
 using Unity.GraphToolkit.Editor;
 using UnityEngine;
 
@@ -15,10 +16,6 @@ namespace Drama.Editor
     ///   p6 reserved   = 语义未确认，原始数据里出现过 1 和 6
     ///   p7 durationMs = 动画时长
     ///   p8 wait       = 是否阻塞（等动画播完才推进）
-    ///
-    /// 注意：本工程【不采用】原系统的「立绘槽位 + 10」编址。
-    /// 原作里 actorIdx = 10 + 剧本头 actors 列表下标，需要维护一张槽位表；
-    /// 这里直接用角色ID，没有槽位这层间接，也不需要在导出时做换算。
     /// </summary>
     [Node("命令/立绘/显示隐藏", "Assets/Drama/Assets/Start.png", "立绘显示")]
     [Serializable]
@@ -30,6 +27,7 @@ namespace Drama.Editor
         internal const string k_ShowDirection = "ShowDirection";
         internal const string k_Reserved = "Reserved";
         internal const string k_Wait     = "Wait";
+        internal const string k_Ease = "Ease";
 
         // ---- Port 名 ----
         internal const string k_Pos      = "Pos";
@@ -108,11 +106,9 @@ namespace Drama.Editor
                 .WithTooltip("勾选则阻塞剧情推进，等动画播完再继续（p8）")
                 .Build();
 
-            context.AddOption<int>(k_Reserved)
-                .WithDisplayName("保留参数")
-                .WithDefaultValue(1)
-                .WithTooltip("原系统 p6，语义未确认（实测出现过 1 和 6）。不确定就留 1")
-                .ShowInInspectorOnly()
+            context.AddOption<Ease>(k_Ease)
+                .WithDisplayName("过度")
+                .WithDefaultValue(Ease.Linear)
                 .Build();
         }
 
