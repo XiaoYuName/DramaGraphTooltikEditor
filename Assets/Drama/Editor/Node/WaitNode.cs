@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Drama.Editor
 {
     [System.Serializable]
-    [Node("命令","Assets/Drama/Assets/Wait.png","等待")]
+    [Node("命令/流程","Assets/Drama/Assets/Wait.png","等待")]
     public class WaitNode : DramaNode
     {
         public const string WaitNodeName = "Wait";

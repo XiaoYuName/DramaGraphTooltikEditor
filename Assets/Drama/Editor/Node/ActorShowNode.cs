@@ -17,7 +17,7 @@ namespace Drama.Editor
     ///   p7 durationMs = 动画时长
     ///   p8 wait       = 是否阻塞（等动画播完才推进）
     /// </summary>
-    [Node("命令/立绘/显示隐藏", "Assets/Drama/Assets/Start.png", "立绘显示")]
+    [Node("命令/立绘", "Assets/Drama/Assets/Start.png", "立绘出现")]
     [Serializable]
     public class ActorShowNode : DramaNode
     {

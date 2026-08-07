@@ -111,5 +111,12 @@ namespace Drama.Editor
         FadeIn = 2,
         FadeOut = 3,
     }
+
+    
+    public enum TalkFrame
+    {
+        Normal = 0,
+        HCG = 1
+    }
 }
 
