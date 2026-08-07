@@ -81,5 +81,13 @@ namespace Drama.Editor
         Right = 1,
         Center = 2,
     }
+
+    public enum EDramaScreenEff
+    {
+        None = 0,
+        Fade = 1,
+        FadeIn = 2,
+        FadeOut = 3,
+    }
 }
 
