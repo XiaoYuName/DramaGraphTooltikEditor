@@ -252,6 +252,22 @@ namespace Drama.Editor.Tools
 
         bool HasRegistry => !string.IsNullOrWhiteSpace(RegistryUrl);
 
+        [PropertyOrder(25.5f)]
+        [ShowInInspector, ReadOnly, LabelText("npm 位置")]
+        [GUIColor(nameof(NpmColor))]
+        string NpmPathDisplay =>
+            ResolveNpmPath() ?? "找不到 —— 装 Node.js（nodejs.org 的 LTS），装完点右边「重新查找」";
+
+        Color NpmColor => ResolveNpmPath() != null ? Color.white : new Color(1f, 0.85f, 0.4f);
+
+        [PropertyOrder(25.5f)]
+        [Button("重新查找 npm", ButtonSizes.Medium)]
+        void RefreshNpmPath()
+        {
+            var p = ResolveNpmPath(forceRefresh: true);
+            Log(p != null ? $"找到 npm：{p}" : "还是找不到 npm。确认 Node.js 装好了，路径里有 npm.cmd。");
+        }
+
         [PropertyOrder(26)]
         [ButtonGroup("npm")]
         [Button("⑥ npm publish", ButtonSizes.Large)]
@@ -537,14 +553,83 @@ namespace Drama.Editor.Tools
 
         // ------------------------------------------------------------ npm
 
-        // Windows 上 npm 是个 .cmd，UseShellExecute=false 时必须写全名，否则起不来
-        static string NpmExe =>
-            Application.platform == RuntimePlatform.WindowsEditor ? "npm.cmd" : "npm";
+        static string s_NpmPath;
+
+        /// <summary>
+        /// 找 npm 的绝对路径。
+        ///
+        /// 为什么不直接写 "npm.cmd" 让系统去 PATH 里找：
+        ///   Unity 进程的 PATH 是启动那一刻继承的。刚装完 Node.js 不重启 Unity，
+        ///   进程里根本看不到新的 PATH，只会报「系统找不到指定的文件」。
+        ///
+        /// 所以这里除了进程自己的 PATH，还去读 User / Machine 两级 ——
+        /// 那两级是实时从注册表取的，装完 Node 立刻就能找到，不用重启 Unity。
+        /// </summary>
+        static string ResolveNpmPath(bool forceRefresh = false)
+        {
+            if (!forceRefresh && !string.IsNullOrEmpty(s_NpmPath) && File.Exists(s_NpmPath))
+                return s_NpmPath;
+
+            s_NpmPath = null;
+            var isWin = Application.platform == RuntimePlatform.WindowsEditor;
+
+            // Windows 上 npm 是个 .cmd，UseShellExecute=false 时必须给全名
+            var exeNames = isWin ? new[] { "npm.cmd", "npm.exe" } : new[] { "npm" };
+
+            var targets = isWin
+                ? new[] { EnvironmentVariableTarget.Process, EnvironmentVariableTarget.User, EnvironmentVariableTarget.Machine }
+                : new[] { EnvironmentVariableTarget.Process };
+
+            foreach (var target in targets)
+            {
+                string path;
+                try { path = Environment.GetEnvironmentVariable("PATH", target); }
+                catch { continue; }
+                if (string.IsNullOrEmpty(path)) continue;
+
+                foreach (var dir in path.Split(Path.PathSeparator))
+                {
+                    if (string.IsNullOrWhiteSpace(dir)) continue;
+                    foreach (var exe in exeNames)
+                    {
+                        try
+                        {
+                            var full = Path.Combine(dir.Trim(), exe);
+                            if (File.Exists(full)) return s_NpmPath = full;
+                        }
+                        catch { /* PATH 里可能有非法路径，跳过 */ }
+                    }
+                }
+            }
+
+            // PATH 里没有就翻常见安装位置
+            var candidates = isWin
+                ? new[]
+                {
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "nodejs", "npm.cmd"),
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "nodejs", "npm.cmd"),
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "npm", "npm.cmd"),
+                }
+                : new[] { "/usr/local/bin/npm", "/opt/homebrew/bin/npm", "/usr/bin/npm" };
+
+            foreach (var c in candidates)
+                if (File.Exists(c)) return s_NpmPath = c;
+
+            return null;
+        }
 
         (int code, string all) Npm(string args, string workingSubDir)
         {
+            var npm = ResolveNpmPath();
+            if (npm == null)
+            {
+                Log("找不到 npm。装 Node.js（nodejs.org 的 LTS）之后再试。\n" +
+                    "  已经装过的话点一下上面的「重新查找 npm」—— 不用重启 Unity。");
+                return (-1, "");
+            }
+
             Log($"$ npm {args}");
-            var r = RunProcess(NpmExe, args, workingSubDir);
+            var r = RunProcess(npm, args, workingSubDir, Path.GetDirectoryName(npm));
             if (!string.IsNullOrWhiteSpace(r.all)) Log(Indent(r.all));
             if (r.code != 0) Log($"  ↑ 退出码 {r.code}");
             else Log("✅ 完成。宿主工程现在能在 Package Manager 里看到这个版本了。");
@@ -553,15 +638,19 @@ namespace Drama.Editor.Tools
 
         (int code, string all) NpmQuiet(string args)
         {
-            var r = RunProcess(NpmExe, args);
+            var npm = ResolveNpmPath();
+            if (npm == null) return (-1, "找不到 npm");
+
+            var r = RunProcess(npm, args, null, Path.GetDirectoryName(npm));
             return (r.code, r.all);
         }
 
         // ------------------------------------------------------------ 进程
 
         /// <param name="workingSubDir">相对工程根的子目录，null = 工程根。</param>
+        /// <param name="extraPathDir">额外塞进子进程 PATH 的目录（npm 要靠它找到旁边的 node.exe）。</param>
         (int code, string stdout, string stderr, string all) RunProcess(
-            string exe, string args, string workingSubDir = null)
+            string exe, string args, string workingSubDir = null, string extraPathDir = null)
         {
             var root = m_ProjectRoot ?? Path.GetDirectoryName(Application.dataPath)?.Replace('\\', '/');
             if (!string.IsNullOrEmpty(workingSubDir))
@@ -579,6 +668,15 @@ namespace Drama.Editor.Tools
                     StandardOutputEncoding = Encoding.UTF8,
                     StandardErrorEncoding = Encoding.UTF8,
                 };
+
+                // npm.cmd 要靠 PATH 找到旁边的 node.exe。Unity 进程的 PATH 可能是旧的，
+                // 所以把 npm 所在目录显式塞到子进程 PATH 最前面。
+                if (!string.IsNullOrEmpty(extraPathDir))
+                {
+                    var existing = psi.EnvironmentVariables.ContainsKey("PATH")
+                        ? psi.EnvironmentVariables["PATH"] : "";
+                    psi.EnvironmentVariables["PATH"] = extraPathDir + Path.PathSeparator + existing;
+                }
 
                 using (var p = new Process { StartInfo = psi })
                 {
