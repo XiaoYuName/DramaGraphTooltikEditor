@@ -1,7 +1,9 @@
 {
     "name": "Drama.Runtime",
     "rootNamespace": "Drama.Runtime",
-    "references": [],
+    "references": [
+        "UniTask"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

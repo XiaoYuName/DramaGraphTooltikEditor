@@ -11,10 +11,8 @@ namespace Drama.Editor
         
         protected override void OnDefinePorts(IPortDefinitionContext context)
         {
-            context.AddInputPort(NodeProtName)
-                .WithDisplayName("输入")
-                .WithCapacity(capacity: PortCapacity.Single)
-                .Build();
+            
+            base.OnDefinePorts(context);
             
             context.AddInputPort<string>(MusicID)
                 .WithDisplayName("音频ID")

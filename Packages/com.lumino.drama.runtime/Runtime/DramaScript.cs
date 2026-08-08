@@ -176,6 +176,14 @@ namespace Drama.Runtime
 
         public bool IsParallelFork => Next != null && Next.Length > 1;
         public bool IsJoin => InboundCount > 1;
+
+        /// <summary>
+        /// 除 <see cref="Next"/> 之外的跳转目标（目前只有选项分支用）。
+        ///
+        /// 这里描述的是【图结构】而不是执行逻辑 —— 运行时要靠它算可达性和汇合点，
+        /// 所以必须放在数据层，不能藏在 Handler 里。
+        /// </summary>
+        public virtual void CollectBranchTargets(List<int> into) { }
     }
 
     #endregion
@@ -264,6 +272,14 @@ namespace Drama.Runtime
         public Option[] Options = Array.Empty<Option>();
 
         public override string Summary => $"选项分支 ×{Options?.Length ?? 0}";
+
+        /// <summary>选项的跳转目标不走 <see cref="DramaAction.Next"/>，得单独报给流程层。</summary>
+        public override void CollectBranchTargets(List<int> into)
+        {
+            if (Options == null) return;
+            foreach (var o in Options)
+                if (o.Next >= 0) into.Add(o.Next);
+        }
     }
 
     /// <summary>领取任务。</summary>

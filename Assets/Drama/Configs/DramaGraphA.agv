@@ -61,6 +61,8 @@ MonoBehaviour:
         - rid: 3100646062594720119
         - rid: 3100646062594720144
         - rid: 3100646062594720149
+        - rid: 3100646062594720250
+        - rid: 3100646062594720251
         m_GraphStickyNoteModels: []
         m_GraphPlacematModels: []
         m_GraphVariableModels:
@@ -72,9 +74,9 @@ MonoBehaviour:
         m_LastKnownBounds:
           serializedVersion: 2
           x: -1076.6666
-          y: -169.33333
+          y: -309.3333
           width: 2578.6665
-          height: 566
+          height: 706
         m_GraphElementMetaData:
         - m_Guid:
             m_Value0: 9879053991861712020
@@ -324,6 +326,22 @@ MonoBehaviour:
             Hash: 9472e3d011eeffa9d7e221c6206e8e19
           m_Category: 2
           m_Index: 15
+        - m_Guid:
+            m_Value0: 1691093168334302866
+            m_Value1: 10309161213673545999
+          m_HashGuid:
+            serializedVersion: 2
+            Hash: 92eea7dc46f877170f213fe9807f118f
+          m_Category: 2
+          m_Index: 16
+        - m_Guid:
+            m_Value0: 9215007452966977579
+            m_Value1: 17024686968285713265
+          m_HashGuid:
+            serializedVersion: 2
+            Hash: 2b80ac8c7448e27f7153e4d498d643ec
+          m_Category: 2
+          m_Index: 17
         m_Graph:
           rid: 3100646041655181802
     - rid: 3100646041655181801
@@ -491,7 +509,7 @@ MonoBehaviour:
           serializedVersion: 2
           Hash: b2e91c162e50b900e519c6c7ee25c10b
         m_Version: 2
-        m_Position: {x: -439.11734, y: -169.22414}
+        m_Position: {x: -433.78403, y: -309.22415}
         m_Title: 
         m_Tooltip: 
         m_NodePreviewModel:
@@ -854,7 +872,7 @@ MonoBehaviour:
           serializedVersion: 2
           Hash: d7b67f8a3378c57ea7cde7624c2fb522
         m_Version: 2
-        m_Position: {x: -434.32, y: 169.69002}
+        m_Position: {x: -435.51413, y: 79.92339}
         m_Title: 
         m_Tooltip: 
         m_NodePreviewModel:
@@ -1168,7 +1186,7 @@ MonoBehaviour:
           serializedVersion: 2
           Hash: cd848308c866d95430b03390854b3c13
         m_Version: 2
-        m_Position: {x: -435.03452, y: 26.212986}
+        m_Position: {x: -435.29834, y: -81.426476}
         m_Title: 
         m_Tooltip: 
         m_NodePreviewModel:
@@ -1854,3 +1872,67 @@ MonoBehaviour:
           m_PortDirection: 1
           m_PortOrientation: 0
           m_Title: "\u8BED\u97F3"
+    - rid: 3100646062594720250
+      type: {class: WireModel, ns: Unity.GraphToolkit.Editor, asm: UnityEditor.GraphToolkitModule}
+      data:
+        m_Guid:
+          m_Value0: 1691093168334302866
+          m_Value1: 10309161213673545999
+        m_HashGuid:
+          serializedVersion: 2
+          Hash: 92eea7dc46f877170f213fe9807f118f
+        m_Version: 2
+        m_FromPortReference:
+          m_NodeModelGuid:
+            m_Value0: 6114030978454488269
+            m_Value1: 1386065822345310256
+          m_NodeModelHashGuid:
+            serializedVersion: 2
+            Hash: cd848308c866d95430b03390854b3c13
+          m_UniqueId: DramaProtName
+          m_PortDirection: 2
+          m_PortOrientation: 0
+          m_Title: "\u8F93\u51FA"
+        m_ToPortReference:
+          m_NodeModelGuid:
+            m_Value0: 2884452043169953186
+            m_Value1: 1357705737711517803
+          m_NodeModelHashGuid:
+            serializedVersion: 2
+            Hash: a275cbccd9a107286b00cecd2c8ad712
+          m_UniqueId: DramaProtName
+          m_PortDirection: 1
+          m_PortOrientation: 0
+          m_Title: "\u8F93\u5165"
+    - rid: 3100646062594720251
+      type: {class: WireModel, ns: Unity.GraphToolkit.Editor, asm: UnityEditor.GraphToolkitModule}
+      data:
+        m_Guid:
+          m_Value0: 9215007452966977579
+          m_Value1: 17024686968285713265
+        m_HashGuid:
+          serializedVersion: 2
+          Hash: 2b80ac8c7448e27f7153e4d498d643ec
+        m_Version: 2
+        m_FromPortReference:
+          m_NodeModelGuid:
+            m_Value0: 9134839581953210071
+            m_Value1: 2500957173197557159
+          m_NodeModelHashGuid:
+            serializedVersion: 2
+            Hash: d7b67f8a3378c57ea7cde7624c2fb522
+          m_UniqueId: DramaProtName
+          m_PortDirection: 2
+          m_PortOrientation: 0
+          m_Title: "\u8F93\u51FA"
+        m_ToPortReference:
+          m_NodeModelGuid:
+            m_Value0: 2884452043169953186
+            m_Value1: 1357705737711517803
+          m_NodeModelHashGuid:
+            serializedVersion: 2
+            Hash: a275cbccd9a107286b00cecd2c8ad712
+          m_UniqueId: DramaProtName
+          m_PortDirection: 1
+          m_PortOrientation: 0
+          m_Title: "\u8F93\u5165"
