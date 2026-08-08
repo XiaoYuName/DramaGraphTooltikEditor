@@ -1,6 +1,4 @@
 using System;
-using Drama.Editor.Export;
-using Drama.Runtime;
 using Unity.GraphToolkit.Editor;
 using UnityEngine;
 
@@ -10,12 +8,13 @@ namespace Drama.Editor
     /// 对话节点（容器）。内部可以放 <see cref="TalkTextBlock"/> 等 Block。
     /// 继承 DramaContextNode（而不是 DramaNode）才能装 Block。
     ///
-    /// 导出时本节点自己【不产出指令】——「说话人 / 对话框动效 / 自动等待 / 名字颜色」
+    /// 导出时本节点自己不产出指令——「说话人 / 对话框动效 / 自动等待 / 名字颜色」
     /// 是整段共用的参数，由内部每个 <see cref="TalkTextBlock"/> 各产出一条 TalkAction 时取用。
+    /// 映射逻辑见 Export/DramaNodeExporters.cs。
     /// </summary>
     [Node("命令/对话","Assets/Drama/Assets/Talk.png","对话")]
     [Serializable]
-    public class TalkNode : DramaContextNode, IDramaExportNode
+    public class TalkNode : DramaContextNode
     {
         // 选项名
         const string k_Speaker    = "Speaker";
@@ -118,62 +117,13 @@ namespace Drama.Editor
         /// <summary>说话人是否取自立绘槽位。</summary>
         internal bool IsActorSlotSpeaker() => GetSpeaker() == ETalkSpeaker.ActorSlot;
 
-        // ==================== 导出 ====================
-
-        /// <summary>
-        /// 容器自己不产出指令，只做校验。真正的 TalkAction 由内部的 TalkTextBlock 产出。
-        /// </summary>
-        void IDramaExportNode.Export(DramaExportContext ctx)
-        {
-            if (BlockCount == 0)
-                ctx.Warn("对话节点里没有台词块，不会产出任何台词", this);
-        }
-
-        /// <summary>
-        /// 把整段共用的参数填进一条 TalkAction。由 <see cref="TalkTextBlock"/> 调用。
-        /// </summary>
-        internal void ApplySharedTo(TalkAction action, DramaExportContext ctx)
-        {
-            var speaker = GetSpeaker();
-            action.Speaker = MapSpeaker(speaker);
-
-            if (speaker == ETalkSpeaker.Unknown)
-                action.SpeakerName = ctx.EvalLocalized(GetInputPortByName(k_SpeakerName));
-
-            if (speaker == ETalkSpeaker.ActorSlot)
-                action.ActorId = ctx.Eval<int>(GetInputPortByName(k_ActorSlot), 0);
-
-            action.Balloon = MapBalloon(ctx.Eval<EBallonKind>(GetInputPortByName(k_Ballon), EBallonKind.Normal));
-
-            // 编辑器里是毫秒，运行时统一用秒
-            action.AutoWaitSeconds = ctx.Eval<float>(GetInputPortByName(k_WaitMs), 0f) / 1000f;
-
-            action.NameColor = ctx.Eval<Color>(GetInputPortByName(k_NameColor), Color.white);
-        }
-
-        // 显式映射而不是强转 —— 以后哪边加了枚举值，编译器会在这里提醒
-        static ESpeakerKind MapSpeaker(ETalkSpeaker v)
-        {
-            switch (v)
-            {
-                case ETalkSpeaker.Aside:     return ESpeakerKind.Aside;
-                case ETalkSpeaker.Hero:      return ESpeakerKind.Hero;
-                case ETalkSpeaker.Unknown:   return ESpeakerKind.Custom;
-                case ETalkSpeaker.ActorSlot: return ESpeakerKind.Actor;
-                default:                     return ESpeakerKind.Aside;
-            }
-        }
-
-        static EBalloonKind MapBalloon(EBallonKind v)
-        {
-            switch (v)
-            {
-                case EBallonKind.Normal: return EBalloonKind.Normal;
-                case EBallonKind.Shake:  return EBalloonKind.Shake;
-                case EBallonKind.Shock:  return EBalloonKind.Shock;
-                default:                 return EBalloonKind.Normal;
-            }
-        }
+        // 导出映射用到的端口/选项名，开放给 Export/DramaNodeExporters.cs
+        internal const string ExportSpeakerOption = k_Speaker;
+        internal const string ExportBallonPort    = k_Ballon;
+        internal const string ExportWaitMsPort    = k_WaitMs;
+        internal const string ExportNameColorPort = k_NameColor;
+        internal const string ExportSpeakerNamePort = k_SpeakerName;
+        internal const string ExportActorSlotPort = k_ActorSlot;
 
 
         /// <summary>

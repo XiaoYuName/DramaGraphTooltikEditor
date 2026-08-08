@@ -15,22 +15,22 @@ namespace Drama.Editor.Export
         internal string OutputPath;
         internal bool Success;
         internal int ActionCount;
+        internal int ParallelForkCount;
+        internal int JoinCount;
         internal List<string> Errors = new List<string>();
         internal List<string> Warnings = new List<string>();
-
-        internal string Summary =>
-            Success ? $"{ActionCount} 条指令"
-                    : (Errors.Count > 0 ? Errors[0] : "失败");
     }
 
     /// <summary>
-    /// 把 DramaGraph（.agv）转成运行时 DramaScript（.asset）。
+    /// DramaGraph（.agv）→ 运行时 DramaScript（.asset）。
     ///
-    /// 流程：
-    ///   ① 找入口（StartDramaNode）
-    ///   ② 沿【流程端口】线性遍历，Context 展开成多条指令
-    ///   ③ 遍历结束后回填节点之间的 Next
-    ///   ④ 写出 ScriptableObject
+    /// <b>并行 / 串行语义</b>（整个导出器的核心）：
+    ///   一个流程输出端口连 1 条线 → 串行，下一条要等本条完全执行完
+    ///   一个流程输出端口连 N 条线 → 并行，N 条同时开始
+    /// 落到数据上就是 <see cref="DramaAction.Next"/> 这个数组的长度。
+    ///
+    /// 多条支线汇到同一个节点时，该指令的 <see cref="DramaAction.InboundCount"/> &gt; 1，
+    /// 运行时应当等所有入边到齐后才执行一次。
     /// </summary>
     internal static class DramaExporter
     {
@@ -38,7 +38,6 @@ namespace Drama.Editor.Export
 
         // ------------------------------------------------------------ 查找图
 
-        /// <summary>扫描工程里所有 .agv。</summary>
         internal static List<string> FindAllGraphPaths()
         {
             var ext = "." + DramaGraph.AssetExtension;
@@ -71,32 +70,52 @@ namespace Drama.Editor.Export
                 return result;
             }
 
-            // ② 线性遍历
-            var ordered = Walk(graph, entry, ctx);
+            // ② 收集所有可达节点并逐个翻译
+            var reachable = CollectReachable(entry, ctx);
+            foreach (var node in reachable)
+            {
+                ctx.BeginNode(node);
+                if (!DramaNodeExporters.TryExport(node, ctx))
+                    ctx.Warn($"节点「{node.GetType().Name}」还没有导出映射，已跳过", node);
+            }
 
-            // ③ 回填节点之间的 Next
-            for (int i = 0; i + 1 < ordered.Count; i++)
-                ctx.Link(ordered[i], ordered[i + 1]);
+            // ③ 连线：决定串行还是并行
+            foreach (var node in reachable)
+                LinkNode(node, ctx);
+
+            ctx.ComputeInbound();
 
             result.Errors.AddRange(ctx.Errors);
             result.Warnings.AddRange(ctx.Warnings);
             result.ActionCount = ctx.Actions.Count;
+            result.ParallelForkCount = ctx.Actions.Count(a => a.IsParallelFork);
+            result.JoinCount = ctx.Actions.Count(a => a.IsJoin);
 
             if (ctx.HasError) return result;
 
             if (ctx.Actions.Count == 0)
             {
-                result.Errors.Add("没有产出任何指令 —— 检查是否所有节点都实现了 IDramaExportNode");
+                result.Errors.Add("没有产出任何指令");
                 return result;
             }
 
             // ④ 写出
+            var entryIndices = ResolveTargets(entry, ctx, new HashSet<Hash128>());
+            if (entryIndices.Count == 0)
+            {
+                result.Errors.Add("入口节点后面没有接任何能导出的节点");
+                return result;
+            }
+
             var script = ScriptableObject.CreateInstance<DramaScript>();
             script.FormatVersion = DramaScript.CurrentFormatVersion;
-            script.DramaId = ReadDramaId(entry, ctx);
+            script.DramaId = ctx.Eval<long>(entry.GetInputPortByName(StartDramaNode.DramaID), -1);
             script.SourceGraph = graphPath;
-            script.Actions = ctx.Actions.ToList();
-            script.EntryIndex = ordered.Count > 0 && ctx.TryGetFirstAction(ordered[0], out var e) ? e : -1;
+            script.Actions = ctx.Actions;
+            script.EntryIndex = entryIndices[0];
+
+            if (entryIndices.Count > 1)
+                ctx.Warn("入口直接连了多条并行线；运行时会从第一条开始，其余靠 Next 分发");
 
             if (!writeAsset)
             {
@@ -105,14 +124,13 @@ namespace Drama.Editor.Export
                 return result;
             }
 
-            var name = Path.GetFileNameWithoutExtension(graphPath);
-            var outPath = $"{outputFolder.TrimEnd('/')}/{name}.asset";
             EnsureFolder(outputFolder);
+            var outPath = $"{outputFolder.TrimEnd('/')}/{Path.GetFileNameWithoutExtension(graphPath)}.asset";
 
             var existing = AssetDatabase.LoadAssetAtPath<DramaScript>(outPath);
             if (existing != null)
             {
-                // 覆盖已有资产而不是删了重建 —— 保住 GUID，别的场景/预制体的引用不会断
+                // 覆盖而不是删了重建 —— 保住 GUID，别处对这个资产的引用不会断
                 EditorUtility.CopySerialized(script, existing);
                 EditorUtility.SetDirty(existing);
                 Object.DestroyImmediate(script);
@@ -134,111 +152,128 @@ namespace Drama.Editor.Export
         static INode FindEntryNode(DramaGraph graph, DramaExportContext ctx)
         {
             var starts = graph.GetNodes().OfType<StartDramaNode>().ToList();
-
             if (starts.Count == 0) { ctx.Error("找不到「进入」节点（StartDramaNode）"); return null; }
             if (starts.Count > 1) { ctx.Error($"存在 {starts.Count} 个「进入」节点，只能有一个"); return null; }
-
             return starts[0];
         }
 
-        static long ReadDramaId(INode entry, DramaExportContext ctx)
-        {
-            var port = entry.GetInputPortByName(StartDramaNode.DramaID);
-            return ctx.Eval<long>(port, -1);
-        }
-
-        /// <summary>
-        /// 从入口沿流程端口走一遍，顺带调用每个节点的 Export。
-        /// 返回按执行顺序排列的节点列表。
-        /// </summary>
-        static List<INode> Walk(DramaGraph graph, INode entry, DramaExportContext ctx)
+        /// <summary>从入口出发，广度优先收集所有沿流程端口可达的节点（每个只收一次）。</summary>
+        static List<INode> CollectReachable(INode entry, DramaExportContext ctx)
         {
             var ordered = new List<INode>();
-            var visited = new HashSet<Hash128>();
-            var node = entry;
+            var seen = new HashSet<Hash128> { entry.ID };
+            var queue = new Queue<INode>();
 
-            while (node != null)
+            ordered.Add(entry);
+            queue.Enqueue(entry);
+
+            while (queue.Count > 0)
             {
-                if (!visited.Add(node.ID))
+                var node = queue.Dequeue();
+                foreach (var next in DownstreamNodes(node))
                 {
-                    ctx.Error("流程出现环，遍历中止", node);
-                    break;
+                    if (!seen.Add(next.ID)) continue;   // 汇合点会被多条路径指到，只收一次
+                    ordered.Add(next);
+                    queue.Enqueue(next);
                 }
-
-                // 入口节点本身不产出指令
-                if (!(node is StartDramaNode))
-                {
-                    ctx.BeginNode(node);
-                    ExportNode(node, ctx);
-
-                    // 只有真的产出了指令才计入链条，否则 Link 会把链接错位
-                    if (ctx.TryGetFirstAction(node, out _))
-                        ordered.Add(node);
-                }
-
-                node = NextNode(node, ctx);
             }
 
             return ordered;
         }
 
-        static void ExportNode(INode node, DramaExportContext ctx)
+        /// <summary>
+        /// 本节点所有流程出口连到的下游节点（按端口顺序、端口内连接顺序）。
+        /// 流程端口按【类型是 Untyped】识别，不按名字 ——
+        /// 各节点的流程端口命名并不统一（DramaProtName / Output / DramaProtName0…）。
+        /// </summary>
+        static IEnumerable<INode> DownstreamNodes(INode node)
         {
-            var exported = false;
-
-            if (node is IDramaExportNode self)
+            foreach (var port in FlowOutputs(node))
             {
-                self.Export(ctx);
-                exported = true;
-            }
-
-            // 容器节点：把内部的 Block 依次展开
-            if (node is ContextNode context)
-            {
-                foreach (var block in context.BlockNodes)
+                if (!port.IsConnected) continue;
+                var buf = new List<IPort>();
+                port.GetConnectedPorts(buf);
+                foreach (var p in buf)
                 {
-                    if (block is IDramaExportNode blockExport)
-                    {
-                        blockExport.Export(ctx);
-                        exported = true;
-                    }
-                    else
-                    {
-                        ctx.Warn($"块「{block.GetType().Name}」还没实现 IDramaExportNode，已跳过", node);
-                    }
+                    var n = p.GetNode();
+                    if (n != null) yield return n;
                 }
             }
+        }
 
-            if (!exported)
-                ctx.Warn($"节点「{node.GetType().Name}」还没实现 IDramaExportNode，已跳过", node);
+        static List<IPort> FlowOutputs(INode node) =>
+            node.GetOutputPorts().Where(p => p.DataType == typeof(Untyped)).ToList();
+
+        // ------------------------------------------------------------ 连线
+
+        static void LinkNode(INode node, DramaExportContext ctx)
+        {
+            // 分支节点：每个出口端口对应一个选项，不是并行
+            if (node is ChangeDramaNode choiceNode)
+            {
+                LinkChoice(choiceNode, ctx);
+                return;
+            }
+
+            // 普通节点：把所有流程出口的所有连接汇总
+            //   1 个目标 → 串行；多个目标 → 并行
+            var targets = new List<int>();
+            foreach (var next in DownstreamNodes(node))
+                foreach (var idx in ResolveTargets(next, ctx, new HashSet<Hash128>()))
+                    if (!targets.Contains(idx))
+                        targets.Add(idx);
+
+            ctx.SetNext(node, targets);
+        }
+
+        static void LinkChoice(ChangeDramaNode node, DramaExportContext ctx)
+        {
+            if (!ctx.TryGetFirstAction(node, out var idx)) return;
+            if (!(ctx.Actions[idx] is ChoiceAction choice)) return;
+
+            for (int i = 0; i < choice.Options.Length; i++)
+            {
+                var port = node.GetOutputPortByName(DramaNode.NodeProtName + i);
+                if (port == null || !port.IsConnected)
+                {
+                    ctx.Warn($"分支 {i} 的出口没有接任何节点", node);
+                    continue;
+                }
+
+                var buf = new List<IPort>();
+                port.GetConnectedPorts(buf);
+                if (buf.Count == 0) continue;
+
+                var branch = ResolveTargets(buf[0].GetNode(), ctx, new HashSet<Hash128>());
+                choice.Options[i].Next = branch.Count > 0 ? branch[0] : -1;
+            }
+
+            // 选项自己带跳转目标，ChoiceAction 本身不再有顺序后继
+            ctx.SetNext(node, System.Array.Empty<int>());
         }
 
         /// <summary>
-        /// 找下一个节点。
-        /// 流程端口按【类型是 Untyped】识别，不按名字 ——
-        /// 因为各节点的流程端口命名并不统一（DramaProtName / Output / DramaProtName0…）。
+        /// 求一个节点对应的"入口指令下标"。
+        /// 如果这个节点没产出指令（比如还没写映射），就顺着它的下游继续找，
+        /// 这样链条不会被断掉。
         /// </summary>
-        static INode NextNode(INode node, DramaExportContext ctx)
+        static List<int> ResolveTargets(INode node, DramaExportContext ctx, HashSet<Hash128> guard)
         {
-            var flowOuts = node.GetOutputPorts()
-                .Where(p => p.DataType == typeof(Untyped))
-                .ToList();
+            var result = new List<int>();
+            if (node == null || !guard.Add(node.ID)) return result;
 
-            if (flowOuts.Count == 0) return null;
-
-            var connected = flowOuts.Where(p => p.IsConnected).ToList();
-            if (connected.Count == 0) return null;
-
-            if (connected.Count > 1)
+            if (ctx.TryGetFirstAction(node, out var first))
             {
-                // 多出口（分支）暂不支持，先按第一条走并明确报出来，避免静默丢内容
-                ctx.Error($"节点有 {connected.Count} 个已连接的流程出口（分支），导出器暂不支持分支", node);
-                return null;
+                result.Add(first);
+                return result;
             }
 
-            var buf = new List<IPort>();
-            connected[0].GetConnectedPorts(buf);
-            return buf.Count > 0 ? buf[0].GetNode() : null;
+            foreach (var next in DownstreamNodes(node))
+                foreach (var idx in ResolveTargets(next, ctx, guard))
+                    if (!result.Contains(idx))
+                        result.Add(idx);
+
+            return result;
         }
 
         // ------------------------------------------------------------ 工具

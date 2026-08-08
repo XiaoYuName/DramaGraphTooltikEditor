@@ -155,6 +155,8 @@ namespace Drama.Editor.Export
                         ok++;
                         if (!string.IsNullOrEmpty(r.OutputPath)) lastAsset = r.OutputPath;
                         sb.AppendLine($"  ✔ {entry.Name}   {r.ActionCount} 条指令" +
+                                      (r.ParallelForkCount > 0 ? $"，{r.ParallelForkCount} 处并行" : "") +
+                                      (r.JoinCount > 0 ? $"，{r.JoinCount} 处汇合" : "") +
                                       (string.IsNullOrEmpty(r.OutputPath) ? "" : $"   → {r.OutputPath}"));
                     }
                     else
@@ -231,7 +233,9 @@ namespace Drama.Editor.Export
 
                 Status = r.Warnings.Count > 0 ? "有警告" : (wroteAsset ? "已导出" : "校验通过");
                 Detail = $"{r.ActionCount} 条指令" +
-                         (r.Warnings.Count > 0 ? $"，{r.Warnings.Count} 条警告" : "");
+                         (r.ParallelForkCount > 0 ? $"，并行 {r.ParallelForkCount}" : "") +
+                         (r.JoinCount > 0 ? $"，汇合 {r.JoinCount}" : "") +
+                         (r.Warnings.Count > 0 ? $"，警告 {r.Warnings.Count}" : "");
             }
         }
     }
