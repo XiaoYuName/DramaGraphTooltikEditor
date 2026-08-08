@@ -178,12 +178,16 @@ namespace Drama.Editor.Tools
         }
 
         [PropertyOrder(22)]
-        [Button("一键发布（①→⑤ 全跑）", ButtonSizes.Gigantic)]
+        [Button("一键发布（①→⑥ 全跑）", ButtonSizes.Gigantic)]
         [EnableIf(nameof(ConfirmPush))]
         [GUIColor(0.5f, 0.9f, 0.6f)]
         void ReleaseAll()
         {
             var tag = PlannedTag;
+            var npmStep = HasRegistry
+                ? $"  6. npm publish --registry {RegistryUrl}\n"
+                : "  6. （没填 registry 地址，跳过 npm publish —— 宿主工程的 Update 将无法发现新版本）\n";
+
             var ok = EditorUtility.DisplayDialog(
                 "确认发布",
                 $"将执行：\n\n" +
@@ -191,7 +195,8 @@ namespace Drama.Editor.Tools
                 $"  2. git add + commit\n" +
                 $"  3. git tag {tag}\n" +
                 $"  4. git push origin {Branch}\n" +
-                $"  5. git push origin {tag}\n\n" +
+                $"  5. git push origin {tag}\n" +
+                npmStep + "\n" +
                 $"远端：{Remote}\n\n推送后别人就能拉到这个版本，确认继续？",
                 "发布", "取消");
 
@@ -203,16 +208,107 @@ namespace Drama.Editor.Tools
             StepTag();
             StepPushCommits();
             StepPushTag();
-            Log($"\n完成。目标工程 manifest 用：\n{ManifestLine}");
+
+            if (HasRegistry)
+            {
+                var dir = PackageDirInRepo;
+                if (!string.IsNullOrEmpty(dir)) Npm($"publish --registry {RegistryUrl}", dir);
+                Log($"\n完成。宿主工程 manifest 用（Update 可用）：\n{RegistryManifestSnippet}");
+            }
+            else
+            {
+                Log("\n没填 registry 地址，只发了 git tag。");
+                Log($"宿主工程 manifest 用（但 Update 发现不了新版本）：\n{ManifestLine}");
+            }
+        }
+
+        // ==================================================== Registry 发布
+
+        const string k_RegistryPrefKey = "Drama.Release.RegistryUrl";
+
+        [Title("Registry 发布（让宿主工程的 Update 真的能用）")]
+        [PropertyOrder(25)]
+        [InfoBox("git 依赖的 Update 按钮只会按 URL 里写死的 tag 重新拉一次 —— tag 是固定的，" +
+                 "所以永远「没有新版本」。UPM 对 git 没有版本发现能力，这不是配置问题。\n\n" +
+                 "想让宿主工程点 Update 就能升级，包必须发到 scoped registry。",
+                 InfoMessageType.Warning)]
+        [ShowInInspector, LabelText("registry 地址")]
+        [Tooltip("私有 npm registry，比如 http://192.168.10.226:4873。记在 EditorPrefs 里，换机器要重填")]
+        public string RegistryUrl
+        {
+            get => EditorPrefs.GetString(k_RegistryPrefKey, "");
+            set => EditorPrefs.SetString(k_RegistryPrefKey, value ?? "");
+        }
+
+        /// <summary>包名的前两段，作为 scopedRegistries 的 scope。com.lumino.drama.runtime → com.lumino</summary>
+        string ScopePrefix
+        {
+            get
+            {
+                var parts = (PackageName ?? "").Split('.');
+                return parts.Length >= 2 ? $"{parts[0]}.{parts[1]}" : PackageName;
+            }
+        }
+
+        bool HasRegistry => !string.IsNullOrWhiteSpace(RegistryUrl);
+
+        [PropertyOrder(26)]
+        [ButtonGroup("npm")]
+        [Button("⑥ npm publish", ButtonSizes.Large)]
+        [EnableIf(nameof(HasRegistry))]
+        [GUIColor(0.95f, 0.75f, 0.4f)]
+        void StepNpmPublish()
+        {
+            var dir = PackageDirInRepo;
+            if (string.IsNullOrEmpty(dir)) { Log("包路径不对"); return; }
+
+            var ok = EditorUtility.DisplayDialog(
+                "确认发布到 registry",
+                $"将执行：\n\n" +
+                $"  npm publish --registry {RegistryUrl}\n" +
+                $"  工作目录：{dir}\n\n" +
+                $"包：{PackageName} {CurrentVersion}\n\n" +
+                $"npm 不允许覆盖已发布的版本号，发之前确认版本已经 bump 过。\n" +
+                $"发出去别人就能拉到，确认继续？",
+                "发布", "取消");
+            if (!ok) { Log("已取消。"); return; }
+
+            Npm($"publish --registry {RegistryUrl}", dir);
+        }
+
+        [PropertyOrder(26)]
+        [ButtonGroup("npm")]
+        [Button("自检：registry 上有哪些版本", ButtonSizes.Large)]
+        [EnableIf(nameof(HasRegistry))]
+        void CheckRegistryVersions()
+        {
+            var who = NpmQuiet($"whoami --registry {RegistryUrl}");
+            Log(who.code == 0 && !string.IsNullOrWhiteSpace(who.all)
+                ? $"已登录：{who.all.Trim()}"
+                : $"⚠ 未登录。先在命令行跑：npm login --registry {RegistryUrl}");
+
+            var r = NpmQuiet($"view {PackageName} versions --registry {RegistryUrl}");
+            if (r.code != 0)
+            {
+                Log(r.all.Contains("E404") || r.all.Contains("404")
+                    ? $"registry 上还没有「{PackageName}」，这会是第一次发布。"
+                    : $"查询失败：\n{Indent(r.all)}");
+                return;
+            }
+
+            Log($"registry 上已有版本：\n{Indent(r.all)}");
+            Log(r.all.Contains($"'{CurrentVersion}'") || r.all.Contains($"\"{CurrentVersion}\"")
+                ? $"❌ {CurrentVersion} 已经发过了，npm 会拒绝覆盖 —— 先 bump 版本号再发。"
+                : $"✅ {CurrentVersion} 还没发过，可以 publish。");
         }
 
         // ==================================================== 给别的工程用的依赖行
 
         [Title("给别人的导入地址")]
         [PropertyOrder(30)]
-        [InfoBox("把下面任意一种发给使用方即可。方式 A 最省事：Unity 顶上 Package Manager → 左上角「+」→ " +
-                 "Add package from git URL… → 粘贴 → Add。\n" +
-                 "前提：对方机器装了 Git、能访问这个远端地址，并且工程里已有 Odin 和 DOTween。",
+        [InfoBox("推荐方式 R（registry）—— 只有它能让宿主工程的 Update 按钮真正发现新版本。\n" +
+                 "git 那两种（A / B）装完之后想升级只能手改 manifest 里的 tag。\n" +
+                 "无论哪种，对方工程都必须已有 Odin、DOTween 和 UniTask。",
                  InfoMessageType.Info)]
         [LabelText("锁定到 tag")]
         [Tooltip("勾上 = 别人永远拉到这个版本（推荐）。取消 = 拉默认分支最新，队友之间可能版本不一致")]
@@ -231,6 +327,43 @@ namespace Drama.Editor.Tools
 
         /// <summary>包在仓库里的相对路径。</summary>
         string PackageDirInRepo => Path.GetDirectoryName(PackageJsonPath)?.Replace('\\', '/');
+
+        // ---- R：registry 方式（唯一能让 Update 生效的）----
+
+        [PropertyOrder(30.5f)]
+        [ShowInInspector, ReadOnly]
+        [LabelText("R · 宿主 manifest 片段")]
+        [MultiLineProperty(14)]
+        [EnableIf(nameof(HasRegistry))]
+        string RegistryManifestSnippet =>
+            !HasRegistry
+                ? "（先在上面填 registry 地址）"
+                : "{\n" +
+                  "  \"scopedRegistries\": [\n" +
+                  "    {\n" +
+                  "      \"name\": \"Lumino\",\n" +
+                  $"      \"url\": \"{RegistryUrl}\",\n" +
+                  "      \"scopes\": [\n" +
+                  $"        \"{ScopePrefix}\"\n" +
+                  "      ]\n" +
+                  "    }\n" +
+                  "  ],\n" +
+                  "  \"dependencies\": {\n" +
+                  $"    \"{PackageName}\": \"{CurrentVersion}\"\n" +
+                  "  }\n" +
+                  "}";
+
+        [PropertyOrder(30.6f)]
+        [Button("复制 R（registry 片段）", ButtonSizes.Medium)]
+        [EnableIf(nameof(HasRegistry))]
+        void CopyRegistrySnippet() => CopyToClipboard(RegistryManifestSnippet, "registry manifest 片段");
+
+        [PropertyOrder(30.7f)]
+        [InfoBox("宿主工程改用 R 之后，记得把原来那行 git 依赖删掉 —— 同一个包名留两条会打架。\n" +
+                 "改完 Package Manager 里的徽章会从 Git 变成 registry 名，Versions 页签列出全部已发版本，" +
+                 "Update 才会真的发现新版本。", InfoMessageType.None)]
+        [ShowInInspector, ReadOnly, HideLabel]
+        string RegistryHint => "";
 
         // ---- A：Package Manager 直接粘的一行 URL ----
 
@@ -390,7 +523,7 @@ namespace Drama.Editor.Tools
         (int code, string all) Git(string args)
         {
             Log($"$ git {args}");
-            var r = RunGit(args);
+            var r = RunProcess("git", args);
             if (!string.IsNullOrWhiteSpace(r.all)) Log(Indent(r.all));
             if (r.code != 0) Log($"  ↑ 退出码 {r.code}");
             return (r.code, r.all);
@@ -398,17 +531,45 @@ namespace Drama.Editor.Tools
 
         string GitQuiet(string args)
         {
-            var r = RunGit(args);
+            var r = RunProcess("git", args);
             return r.code == 0 ? r.stdout : string.Empty;
         }
 
-        (int code, string stdout, string stderr, string all) RunGit(string args)
+        // ------------------------------------------------------------ npm
+
+        // Windows 上 npm 是个 .cmd，UseShellExecute=false 时必须写全名，否则起不来
+        static string NpmExe =>
+            Application.platform == RuntimePlatform.WindowsEditor ? "npm.cmd" : "npm";
+
+        (int code, string all) Npm(string args, string workingSubDir)
+        {
+            Log($"$ npm {args}");
+            var r = RunProcess(NpmExe, args, workingSubDir);
+            if (!string.IsNullOrWhiteSpace(r.all)) Log(Indent(r.all));
+            if (r.code != 0) Log($"  ↑ 退出码 {r.code}");
+            else Log("✅ 完成。宿主工程现在能在 Package Manager 里看到这个版本了。");
+            return (r.code, r.all);
+        }
+
+        (int code, string all) NpmQuiet(string args)
+        {
+            var r = RunProcess(NpmExe, args);
+            return (r.code, r.all);
+        }
+
+        // ------------------------------------------------------------ 进程
+
+        /// <param name="workingSubDir">相对工程根的子目录，null = 工程根。</param>
+        (int code, string stdout, string stderr, string all) RunProcess(
+            string exe, string args, string workingSubDir = null)
         {
             var root = m_ProjectRoot ?? Path.GetDirectoryName(Application.dataPath)?.Replace('\\', '/');
+            if (!string.IsNullOrEmpty(workingSubDir))
+                root = Path.Combine(root ?? "", workingSubDir).Replace('\\', '/');
 
             try
             {
-                var psi = new ProcessStartInfo("git", args)
+                var psi = new ProcessStartInfo(exe, args)
                 {
                     WorkingDirectory = root,
                     RedirectStandardOutput = true,
@@ -431,10 +592,10 @@ namespace Drama.Editor.Tools
                     p.BeginOutputReadLine();
                     p.BeginErrorReadLine();
 
-                    if (!p.WaitForExit(60000))
+                    if (!p.WaitForExit(120000))
                     {
                         try { p.Kill(); } catch { }
-                        return (-1, "", "超时（60s）", "git 执行超时");
+                        return (-1, "", "超时（120s）", $"{exe} 执行超时");
                     }
                     p.WaitForExit();   // 等异步读取的回调收尾
 
@@ -444,7 +605,8 @@ namespace Drama.Editor.Tools
             }
             catch (Exception e)
             {
-                var msg = $"调不起 git：{e.Message}\n确认 git 已安装并在 PATH 里。";
+                var msg = $"调不起 {exe}：{e.Message}\n确认它已安装并在 PATH 里"
+                          + (exe.StartsWith("npm") ? "（npm 随 Node.js 一起装）。" : "。");
                 Debug.LogWarning(msg);
                 return (-1, "", msg, msg);
             }
