@@ -219,6 +219,37 @@ namespace Drama.Runtime.Tests
         public void StopVoice() => VoiceStopCount++;
     }
 
+    public sealed class MockScreen : IDramaScreen
+    {
+        /// <summary>依次记下每一步转场，形如 "Cover(Fade,1)" / "Reveal(Fade,0.5)"。</summary>
+        public readonly List<string> Steps = new List<string>();
+
+        public int ClearCalls { get; private set; }
+
+        /// <summary>遮罩当前是不是盖着的。用来断言「Cover 之后不许自动还原」。</summary>
+        public bool Covered { get; private set; }
+
+        public UniTask CoverAsync(EScreenTransitionKind kind, float seconds, Color color, float alpha, Ease ease, CancellationToken ct)
+        {
+            Steps.Add($"Cover({kind},{seconds})");
+            Covered = true;
+            return UniTask.CompletedTask;
+        }
+
+        public UniTask RevealAsync(EScreenTransitionKind kind, float seconds, Ease ease, CancellationToken ct)
+        {
+            Steps.Add($"Reveal({kind},{seconds})");
+            Covered = false;
+            return UniTask.CompletedTask;
+        }
+
+        public void Clear()
+        {
+            ClearCalls++;
+            Covered = false;
+        }
+    }
+
     public sealed class MockGameBridge : IDramaGameBridge
     {
         public readonly List<long> ReceivedTasks = new List<long>();
@@ -236,6 +267,7 @@ namespace Drama.Runtime.Tests
         public readonly MockDialogueView Dialogue = new MockDialogueView();
         public readonly MockChoiceView Choice = new MockChoiceView();
         public readonly MockActorStage Actors = new MockActorStage();
+        public readonly MockScreen Screen = new MockScreen();
         public readonly MockLocalization Localization = new MockLocalization();
         public readonly MockAssetProvider Assets = new MockAssetProvider();
         public readonly MockAudio Audio = new MockAudio();
@@ -248,6 +280,7 @@ namespace Drama.Runtime.Tests
             Context.Dialogue = Dialogue;
             Context.Choice = Choice;
             Context.Actors = Actors;
+            Context.Screen = Screen;
             Context.Localization = Localization;
             Context.Assets = Assets;
             Context.Audio = Audio;

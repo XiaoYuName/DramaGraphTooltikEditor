@@ -26,6 +26,9 @@ namespace Drama.Runtime.Handlers
             registry.Register(new TalkShowActionHandler());
             registry.Register(new SetTalkFrameActionHandler());
 
+            // ---- 演出
+            registry.Register(new ScreenTransitionActionHandler());
+
             // ---- 立绘
             registry.Register(new ActorShowActionHandler());
             registry.Register(new ActorMoveActionHandler());
@@ -37,7 +40,7 @@ namespace Drama.Runtime.Handlers
 
             // ---- 还没实现的（宿主自己补，或者等后续版本）：
             //   ActorOffsetMoveAction / ActorShakeAction / ActorVibrateAction
-            //   ScreenTransitionAction / ChangeBackgroundAction / PlayMusicAction
+            //   ChangeBackgroundAction / PlayMusicAction
             // 漏了也不会播到一半才炸 —— DramaHandlerRegistry.FindMissing 会在播放前报出来
 
             return registry;
