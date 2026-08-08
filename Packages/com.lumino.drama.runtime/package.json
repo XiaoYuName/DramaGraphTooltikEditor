@@ -1,0 +1,16 @@
+{
+  "name": "com.lumino.drama.runtime",
+  "version": "0.1.0",
+  "displayName": "Drama Runtime",
+  "description": "剧情系统的运行时数据模型。由 DarmaViewEditor 编辑器工程导出 DramaScript 资产，游戏工程装本包即可读取执行。\n\n依赖：Odin Inspector（Sirenix.OdinInspector.Attributes）、DOTween。这两个不是 UPM 包，需要目标工程自行导入。",
+  "unity": "6000.0",
+  "author": {
+    "name": "Lumino"
+  },
+  "keywords": [
+    "drama",
+    "avg",
+    "dialogue"
+  ],
+  "dependencies": {}
+}

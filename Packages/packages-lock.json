@@ -1,5 +1,11 @@
 {
   "dependencies": {
+    "com.lumino.drama.runtime": {
+      "version": "file:com.lumino.drama.runtime",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
+    },
     "com.unity.2d.animation": {
       "version": "16.0.0",
       "depth": 0,
