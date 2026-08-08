@@ -2,7 +2,8 @@
     "name": "Drama.Runtime",
     "rootNamespace": "Drama.Runtime",
     "references": [
-        "UniTask"
+        "UniTask",
+        "UniTask.DOTween"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

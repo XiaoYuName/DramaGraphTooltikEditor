@@ -1,3 +1,5 @@
+using Drama.Runtime.Services;
+
 namespace Drama.Runtime.Flow
 {
     /// <summary>播放模式。Handler 里的等待时长要看它。</summary>
@@ -19,15 +21,20 @@ namespace Drama.Runtime.Flow
     /// <summary>
     /// Handler 碰外部世界的唯一入口。
     ///
-    /// Runtime 包只【定义】这个接口，宿主工程去【实现】——
-    /// 台词框长什么样、立绘怎么加载，每个工程都不一样，包里不能知道。
-    ///
-    /// 现在只有流程层用得上的成员。等开始写具体 Handler 时，
-    /// 表现层服务（IDialogueView / IActorStage / IAudioService / ...）
-    /// 作为属性追加到这里即可 —— 对流程层是纯增量，不影响已写好的执行器。
+    /// Runtime 包只【定义】这些服务接口，宿主工程去【实现】——
+    /// 台词框长什么样、立绘用 SkeletonGraphic 还是 SkeletonAnimation、
+    /// 资源怎么加载，每个工程都不一样，包里不能知道。
     /// </summary>
     public interface IDramaContext
     {
         EDramaPlaybackMode Mode { get; }
+
+        IDialogueView       Dialogue     { get; }
+        IChoiceView         Choice       { get; }
+        IActorStage         Actors       { get; }
+        IDramaLocalization  Localization { get; }
+        IDramaAssetProvider Assets       { get; }
+        IDramaAudio         Audio        { get; }
+        IDramaGameBridge    Game         { get; }
     }
 }

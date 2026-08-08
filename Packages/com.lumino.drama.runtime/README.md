@@ -49,9 +49,19 @@ Drama.Runtime::Drama.Runtime.TalkAction
 
 ### 3. 外部依赖
 
-本包依赖 **Odin Inspector**（`Sirenix.OdinInspector.Attributes`，运行时 DLL）
-和 **DOTween**（`Ease` / `LoopType` 直接用的它的类型）。
-这两个不是 UPM 包，目标工程要自行导入，否则本包编译不过。
+| 依赖 | 用途 | 备注 |
+|---|---|---|
+| **Odin Inspector** | `Sirenix.OdinInspector.Attributes` 的标注 | 非 UPM 包，目标工程自行导入 |
+| **DOTween** | `Ease` / `LoopType` 是数据字段的类型 | 非 UPM 包，目标工程自行导入 |
+| **UniTask** | 整个执行层的异步 | UPM 包 `com.cysharp.unitask` |
+
+**另外必须定义 `UNITASK_DOTWEEN_SUPPORT` 宏。** 立绘动画的 Handler 用
+`tween.ToUniTask(ct)` 把 DOTween 桥到 UniTask，这个扩展在 `UniTask.DOTween`
+程序集里，而它的内容整体包在 `#if UNITASK_DOTWEEN_SUPPORT` 下。
+
+这个宏本来由 UniTask 的 versionDefine 在检测到 UPM 包 `com.demigiant.dotween`
+时自动定义 —— 但如果 DOTween 是以 DLL 形式放在 `Assets/Plugins/` 下（常见情况），
+版本检测不会触发，得手动加到 Player Settings → Scripting Define Symbols。
 
 ---
 
@@ -69,30 +79,60 @@ Drama.Runtime::Drama.Runtime.TalkAction
 | `1` | **串行** —— 本条完全执行完（含动画/等待）后才执行下一条 |
 | `> 1` | **并行** —— 本条执行完后，这几条同时开始，互不等待 |
 
-`InboundCount > 1` 表示这条指令是并行支线的**汇合点**，运行时要等所有入边到齐后只执行一次。
-
 选项分支是另一套：`ChoiceAction` 自己的 `Next` 为空，跳转目标挂在 `Options[i].Next` 上。
 
-### 执行器骨架
+### ⚠️ 汇合点不要用 `InboundCount` 去等
+
+`InboundCount > 1` 表示这条指令静态上有多条入边。**但拿它做"等所有入边到齐"会死锁**：
+图里只要有 `ChoiceAction`，玩家就只走一条分支，未选分支永远不到达汇合点。
+（另外计数器是共享状态，剧本重播 / 图里有回环时不 reset 就再也走不通。）
+
+本包用的是**结构化 fork-join**：`DramaScriptIndex` 播放前算出每个 fork 的汇合点
+（各分支可达集合的交集里最早的那个），各分支跑到汇合点就停，`WhenAll` 等齐后
+由发起 fork 的那一层继续执行汇合点。零运行期计数，没有死锁的余地。
+
+`InboundCount` 现在只用于导出期校验，不参与运行时决策。
+
+---
+
+## 运行时分层
+
+```
+Data/       DramaScript + 各 XxxAction        纯数据，不含任何执行逻辑
+Flow/       DramaScriptIndex / DramaPlayer     流程语义，不认识任何具体指令类型
+Handlers/   各 XxxActionHandler                指令逻辑，只调 Services 里的接口
+Services/   IDialogueView / IActorStage / ...  ★ 接口在包里，实现在宿主工程
+```
+
+宿主工程要做的只有两件事：实现 `Services/` 下那几个接口，然后装配：
 
 ```csharp
-async UniTask Run(int index)
+var registry = DramaDefaultHandlers.CreateDefault();
+var player   = new DramaPlayer(registry);
+
+// 播放是个 goto 循环，不是递归 —— 连播 N 段剧情栈也是平的
+while (dramaId > 0)
 {
-    var a = script.Actions[index];
+    var script = await LoadScriptAsync(dramaId, ct);
 
-    // 汇合点：等所有入边都到了才继续
-    if (a.InboundCount > 1 && !CountdownArrived(a)) return;
+    var missing = registry.FindMissing(script);        // 播之前就暴露缺失的 Handler
+    if (missing.Count > 0) { Debug.LogError(...); break; }
 
-    await Execute(a);                                  // 真正干活
+    var keys = DramaAssetKeys.Collect(script);         // 批量预载，别播到一半现加载
+    await PreloadAsync(keys, ct);
 
-    if (a.Next.Length == 1)                            // 串行
-        await Run(a.Next[0]);
-    else if (a.Next.Length > 1)                        // 并行
-        await UniTask.WhenAll(a.Next.Select(Run));
+    var result = await player.PlayAsync(script, ctx, ct);
+
+    stage.CompleteAllTweens();                         // 收掉游离动画
+    stage.ReleaseAll();
+    assets.ReleaseAll();
+
+    if (result.Kind != DramaPlayResult.EKind.Goto) break;
+    dramaId = result.GotoDramaId;
 }
 ```
 
 ### 版本
 
 `DramaScript.FormatVersion` 与 `DramaScript.CurrentFormatVersion` 比对。
-读到更高版本应当拒绝加载并提示升级本包。
+`DramaPlayer.PlayAsync` 读到更高版本会直接抛 `NotSupportedException`。

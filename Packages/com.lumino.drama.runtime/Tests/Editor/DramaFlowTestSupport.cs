@@ -62,9 +62,21 @@ namespace Drama.Runtime.Tests
 
     // ------------------------------------------------------------ 上下文与 Handler
 
+    /// <summary>
+    /// 流程测试用的上下文。服务默认全是 null —— 流程语义那批测试用的 Handler
+    /// 压根不碰服务，真要用的测试自己往里塞 mock。
+    /// </summary>
     public sealed class TestContext : IDramaContext
     {
         public EDramaPlaybackMode Mode { get; set; } = EDramaPlaybackMode.Normal;
+
+        public Drama.Runtime.Services.IDialogueView       Dialogue     { get; set; }
+        public Drama.Runtime.Services.IChoiceView         Choice       { get; set; }
+        public Drama.Runtime.Services.IActorStage         Actors       { get; set; }
+        public Drama.Runtime.Services.IDramaLocalization  Localization { get; set; }
+        public Drama.Runtime.Services.IDramaAssetProvider Assets       { get; set; }
+        public Drama.Runtime.Services.IDramaAudio         Audio        { get; set; }
+        public Drama.Runtime.Services.IDramaGameBridge    Game         { get; set; }
     }
 
     public sealed class MarkHandler : DramaSimpleActionHandler<MarkAction>

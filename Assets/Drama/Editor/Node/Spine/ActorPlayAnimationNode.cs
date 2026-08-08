@@ -7,6 +7,7 @@ namespace Drama.Editor
     [Node("命令/骨骼","Assets/Drama/Assets/PlayAnimation.png","播放动画")]
     public class ActorPlayAnimationNode : ActorDramaNode
     {
+        public const string AnimationName = "AnimationName";
         public const string TrackIndex = "TrackIndex";
         public const string isLooping = "isLooping";
         public const string TimeScale  = "TimeScale";
@@ -14,6 +15,11 @@ namespace Drama.Editor
         protected override void OnDefinePorts(IPortDefinitionContext context)
         {
             base.OnDefinePorts(context);
+
+            context.AddInputPort<string>(AnimationName)
+                .WithDefaultValue("")
+                .WithDisplayName("动画名")
+                .Build();
 
             context.AddInputPort<int>(TrackIndex)
                 .WithDefaultValue(1)

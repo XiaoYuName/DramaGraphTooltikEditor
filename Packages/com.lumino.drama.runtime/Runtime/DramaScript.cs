@@ -406,10 +406,15 @@ namespace Drama.Runtime
     {
         public override string Kind => "立绘动画";
         [LabelText("角色ID")] public int ActorId;
+        [LabelText("动画名")] public string AnimationName;
         [LabelText("轨道")]   public int TrackIndex = 1;
         [LabelText("循环")]   public bool Loop;
         [LabelText("倍速")]   public float TimeScale = 1f;
-        public override string Summary => $"动画 · 角色{ActorId} · 轨道{TrackIndex}";
+
+        public override string Summary =>
+            string.IsNullOrEmpty(AnimationName)
+                ? $"动画 · 角色{ActorId} · 轨道{TrackIndex} · (未指定动画名)"
+                : $"动画 · 角色{ActorId} · {AnimationName} · 轨道{TrackIndex}";
     }
 
     /// <summary>非说话者置灰 / 微缩，突出当前说话人。</summary>

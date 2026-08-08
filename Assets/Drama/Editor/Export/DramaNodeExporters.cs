@@ -230,14 +230,21 @@ namespace Drama.Editor.Export
             ctx.Emit(new ActorSetSkinAction { ActorId = ActorId(n, ctx), SkinName = skin });
         }
 
-        static void ExportActorAnim(ActorPlayAnimationNode n, DramaExportContext ctx) =>
+        static void ExportActorAnim(ActorPlayAnimationNode n, DramaExportContext ctx)
+        {
+            var animName = ctx.Port(n, ActorPlayAnimationNode.AnimationName, string.Empty);
+            if (string.IsNullOrEmpty(animName))
+                ctx.Warn("动画名为空，运行时这条指令会被跳过", n);
+
             ctx.Emit(new ActorPlayAnimationAction
             {
-                ActorId    = ActorId(n, ctx),
-                TrackIndex = ctx.Port(n, ActorPlayAnimationNode.TrackIndex, 1),
-                Loop       = ctx.Port(n, ActorPlayAnimationNode.isLooping, false),
-                TimeScale  = ctx.Port(n, ActorPlayAnimationNode.TimeScale, 1f),
+                ActorId       = ActorId(n, ctx),
+                AnimationName = animName,
+                TrackIndex    = ctx.Port(n, ActorPlayAnimationNode.TrackIndex, 1),
+                Loop          = ctx.Port(n, ActorPlayAnimationNode.isLooping, false),
+                TimeScale     = ctx.Port(n, ActorPlayAnimationNode.TimeScale, 1f),
             });
+        }
 
         static void ExportActorHighlight(ActorSetGraySwitchNode n, DramaExportContext ctx) =>
             ctx.Emit(new ActorHighlightAction
