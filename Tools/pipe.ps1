@@ -76,35 +76,47 @@ function Invoke-Compile {
     Write-Host "→ clear_console" -ForegroundColor DarkGray
     [void](Invoke-Pipe 'clear_console')
 
-    Write-Host "→ recompile" -ForegroundColor DarkGray
-    $r = Invoke-Pipe 'recompile'
-    if (-not $r.success) {
-        Write-Host "recompile 调用失败: $($r.error)" -ForegroundColor Red
-        return 1
-    }
+    # ★ 不要用 'recompile' 命令：实测它经常直接返回 up_to_date 而【根本没触发编译】，
+    #   于是 recompile_status 报"无错误"，实际代码里有编译错 —— 假绿灯，非常坑。
+    #   改成显式调 CompilationPipeline.RequestScriptCompilation()，它一定会真编。
+    Write-Host "→ AssetDatabase.Refresh + RequestScriptCompilation" -ForegroundColor DarkGray
+    $code = 'UnityEditor.AssetDatabase.Refresh(); ' +
+            'UnityEditor.Compilation.CompilationPipeline.RequestScriptCompilation(); ' +
+            'return "requested";'
+    try { [void](Invoke-Pipe 'eval' @{ code = $code; timeout = 29000 } 3) }
+    catch { Write-Host "   （触发时连接中断，通常是域重载，继续）" -ForegroundColor DarkGray }
 
-    # 轮询 recompile_status。result 是 JSON 字符串: { status, failed, errors[] }
-    $deadline = [datetime]::UtcNow.AddMinutes(6)
-    $lastState = ''
-    $final = $null
+    # 先等它真的进入 compiling，再等它结束 —— 否则可能在开编之前就误判成功
+    $deadline = [datetime]::UtcNow.AddMinutes(8)
+    $sawCompiling = $false
+    $settled = $false
 
     while ([datetime]::UtcNow -lt $deadline) {
-        Start-Sleep -Milliseconds 1200
-        try { $s = Get-Result (Invoke-Pipe 'recompile_status' @{} 6) } catch { continue }
-        if ($null -eq $s) { continue }
+        Start-Sleep -Milliseconds 1500
+        try { $st = (Invoke-Pipe 'editor_status' @{} 8).result } catch { continue }
+        if ($null -eq $st) { continue }
 
-        if ($s.status -ne $lastState) {
-            Write-Host "   status: $($s.status)" -ForegroundColor DarkGray
-            $lastState = $s.status
+        if ($st.compiling -or $st.domainReloadInProgress) { $sawCompiling = $true; continue }
+        if ($st.status -eq 'ready') {
+            # 已就绪；如果从没见过 compiling，多等一轮防止抢跑
+            if ($sawCompiling) { $settled = $true; break }
+            Start-Sleep -Milliseconds 1500
+            try { $st2 = (Invoke-Pipe 'editor_status' @{} 8).result } catch { continue }
+            if ($st2 -and -not $st2.compiling -and -not $st2.domainReloadInProgress) { $settled = $true; break }
         }
-
-        if ($s.status -in @('completed', 'up_to_date')) { $final = $s; break }
     }
 
-    if ($null -eq $final) {
-        Write-Host "`n⏱ 轮询超时，最后状态: '$lastState'" -ForegroundColor Yellow
+    if (-not $settled) {
+        Write-Host "`n⏱ 等待编译超时" -ForegroundColor Yellow
         return 1
     }
+
+    $final = Get-Result (Invoke-Pipe 'recompile_status' @{} 6)
+    if ($null -eq $final) {
+        Write-Host "`n⏱ 读不到 recompile_status" -ForegroundColor Yellow
+        return 1
+    }
+    Write-Host "   status: $($final.status)" -ForegroundColor DarkGray
 
     # 首选 recompile_status 自带的 errors，它已经是干净的编译错误
     $errors = @($final.errors | Where-Object { $_ })
