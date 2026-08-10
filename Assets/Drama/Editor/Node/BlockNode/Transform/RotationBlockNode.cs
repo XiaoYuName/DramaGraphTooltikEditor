@@ -4,9 +4,9 @@ using UnityEngine;
 
 namespace Drama.Editor
 {
-    [System.Serializable]
-    [Node("命令/变换","Assets/Drama/Assets/Rotation.png","旋转")]
-    public class ActorRotationNode : ActorDramaNode
+    [Node("变换","Assets/Drama/Assets/Rotation.png","旋转")]
+    [UseWithContext(typeof(ActorTransformNode),typeof(ScreenTransformNode))]
+    public class RotationBlockNode : BlockNode
     {
         public const string ActorRotationName = "actorRotation";
         
@@ -35,4 +35,3 @@ namespace Drama.Editor
         }
     }
 }
-

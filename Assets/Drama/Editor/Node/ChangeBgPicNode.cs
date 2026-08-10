@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Drama.Editor
 {
     [System.Serializable]
-    [Node("命令/场景","Assets/Drama/Assets/ChangeBG.png","切换背景")]
+    [Node("命令/背景","Assets/Drama/Assets/ChangeBG.png","切换背景")]
     public class ChangeBgPicNode : DramaNode
     {
         public const  string BackgroundID = "backgroundID";

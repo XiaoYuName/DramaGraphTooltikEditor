@@ -1,13 +1,13 @@
-using System;
 using DG.Tweening;
 using Unity.GraphToolkit.Editor;
 using UnityEngine;
 
 namespace Drama.Editor
 {
-    [Node("命令/变换","Assets/Drama/Assets/Position.png","位置")]
-    [Serializable]
-    public class ActorPositionNode : ActorDramaNode
+    [System.Serializable]
+    [Node("变换","Assets/Drama/Assets/Position.png","位置")]
+    [UseWithContext(typeof(ActorTransformNode),typeof(ScreenTransformNode))]
+    public class PositionBlockNode : BlockNode
     {
         public const string ActorPositionName = "actorPosition";
         
@@ -36,4 +36,3 @@ namespace Drama.Editor
         }
     }
 }
-

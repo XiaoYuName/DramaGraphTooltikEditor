@@ -5,10 +5,11 @@ using UnityEngine;
 namespace Drama.Editor
 {
     [System.Serializable]
-    [Node("命令/变换","Assets/Drama/Assets/Scale.png","缩放")]
-    public class ActorScaleNode : ActorDramaNode
+    [Node("变换","Assets/Drama/Assets/Scale.png","缩放")]
+    [UseWithContext(typeof(ActorTransformNode),typeof(ScreenTransformNode))]
+    public class ScaleBlockNode  : BlockNode
     {
-        public const string ActorScaleName = "actorRotation";
+        public const string ActorScaleName = "actorScale";
         
         public const string Duration = "duration";
         
@@ -33,7 +34,5 @@ namespace Drama.Editor
                 .WithDisplayName("曲线")
                 .Build();
         }
-        
     }
 }
-

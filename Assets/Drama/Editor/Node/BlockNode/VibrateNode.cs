@@ -70,6 +70,16 @@ namespace Drama.Editor
                 .WithDisplayName("时间")
                 .Build();
 
+            context.AddInputPort<float>(SmoothSpeed)
+                .WithDefaultValue(5f)
+                .WithDisplayName("平滑速度")
+                .WithTooltip("趋近目标点的速度，越大越硬。原实现 ≤0 兜底 5")
+                .Build();
+
+            context.AddOutputPort<float>(SmoothSpeed)
+                .WithDisplayName("平滑速度")
+                .Build();
+
             context.AddInputPort<bool>(RestoreOnEnd)
                 .WithDefaultValue(true)
                 .WithDisplayName("归位")

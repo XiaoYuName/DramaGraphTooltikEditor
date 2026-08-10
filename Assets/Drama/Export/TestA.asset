@@ -10,27 +10,82 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 621039800177f9c4f926a12b0c863344, type: 3}
-  m_Name: TestA
+  m_Name: 
   m_EditorClassIdentifier: Drama.Runtime::Drama.Runtime.DramaScript
   DramaId: 101
   EntryIndex: 0
   FormatVersion: 2
   SourceGraph: Assets/Drama/Configs/TestA.agv
   Actions:
-  - rid: 3100646108252078104
+  - rid: 3100646108252078284
+  - rid: 3100646108252078285
+  - rid: 3100646108252078286
+  - rid: 3100646108252078287
+  - rid: 3100646108252078288
+  - rid: 3100646108252078289
   references:
     version: 2
     RefIds:
-    - rid: 3100646108252078104
+    - rid: 3100646108252078284
       type: {class: ScreenTransitionAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 0
-        Next: 
+        Next: 01000000020000000300000004000000i
         InboundCount: 1
         TransitionKind: 0
         Phase: 0
-        InSeconds: 5
+        InSeconds: 1
         OutSeconds: 0
-        Color: {r: 1, g: 1, b: 1, a: 1}
+        Color: {r: 0, g: 0, b: 0, a: 1}
         Alpha: 1
+        Ease: 1
+    - rid: 3100646108252078285
+      type: {class: PlayMusicAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 1
+        Next: 05000000i
+        InboundCount: 1
+        MusicId: DranaStartBgm
+    - rid: 3100646108252078286
+      type: {class: ChangeBackgroundAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 2
+        Next: 05000000i
+        InboundCount: 1
+        BackgroundId: 1001
+        Transition: 0
+        InSeconds: 0
+        OutSeconds: 0
+    - rid: 3100646108252078287
+      type: {class: BackgroundScaleAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 3
+        Next: 05000000i
+        InboundCount: 1
+        BackgroundId: 1001
+        Scale: {x: 1.1, y: 1.1, z: 1.1}
+        DurationSeconds: 0
+        Ease: 1
+    - rid: 3100646108252078288
+      type: {class: BackgroundMoveAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 4
+        Next: 05000000i
+        InboundCount: 1
+        BackgroundId: 1001
+        Position: {x: -50, y: 100}
+        DurationSeconds: 0
+        Ease: 1
+    - rid: 3100646108252078289
+      type: {class: ScreenTransitionAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 5
+        Next: 
+        InboundCount: 4
+        TransitionKind: 0
+        Phase: 1
+        InSeconds: 0
+        OutSeconds: 1
+        Color: {r: 1, g: 1, b: 1, a: 1}
+        Alpha: 0
         Ease: 1

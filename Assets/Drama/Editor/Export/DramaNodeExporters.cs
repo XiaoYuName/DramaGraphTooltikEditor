@@ -40,9 +40,7 @@ namespace Drama.Editor.Export
 
                 // ------------------------------------------------ 立绘
                 case ActorShowNode n:          ExportActorShow(n, ctx); return true;
-                case ActorPositionNode n:      ExportActorMove(n, ctx); return true;
-                case ActorScaleNode n:         ExportActorScale(n, ctx); return true;
-                case ActorRotationNode n:      ExportActorRotate(n, ctx); return true;
+                case ActorTransformNode n:     ExportActorTransform(n, ctx); return true;
                 case ActorSetSkin n:           ExportActorSkin(n, ctx); return true;
                 case ActorPlayAnimationNode n: ExportActorAnim(n, ctx); return true;
                 case ActorSetGraySwitchNode n: ExportActorHighlight(n, ctx); return true;
@@ -51,6 +49,7 @@ namespace Drama.Editor.Export
 
                 // ------------------------------------------------ 场景 / 音频
                 case ScreenEffNode n:          ExportScreenEff(n, ctx); return true;
+                case ScreenTransformNode n:    ExportScreenTransform(n, ctx); return true;
                 case ChangeBgPicNode n:        ExportChangeBg(n, ctx); return true;
                 case SetMusicNode n:           ExportMusic(n, ctx); return true;
 
@@ -195,32 +194,115 @@ namespace Drama.Editor.Export
             });
         }
 
-        static void ExportActorMove(ActorPositionNode n, DramaExportContext ctx) =>
-            ctx.Emit(new ActorMoveAction
-            {
-                ActorId         = ActorId(n, ctx),
-                Position        = ctx.Port(n, ActorPositionNode.ActorPositionName, Vector2.zero),
-                DurationSeconds = ctx.Port(n, ActorPositionNode.Duration, 0f),
-                Ease            = ctx.Port(n, ActorPositionNode.ease, DG.Tweening.Ease.Linear),
-            });
+        /// <summary>
+        /// 立绘变换。位置 / 旋转 / 缩放三种块共用一个容器，一个块产出一条指令。
+        ///
+        /// <b>块 → 指令的映射写在各自容器的导出器里，不要抽成公用方法。</b>
+        /// 同一个 <see cref="PositionBlockNode"/> 放在立绘容器下产出 <c>ActorMoveAction</c>，
+        /// 放在场景容器下将来产出的是另一条指令 —— 是"容器"决定语义，不是"块"。
+        /// 将来某种块只允许出现在其中一个容器里，也是靠这里的 default 分支挡住。
+        /// </summary>
+        static void ExportActorTransform(ActorTransformNode n, DramaExportContext ctx)
+        {
+            var actorId = ActorIdOfContext(n, ctx);
+            if (n.BlockCount == 0) { ctx.Warn("立绘变换节点里没有变换块", n); return; }
 
-        static void ExportActorScale(ActorScaleNode n, DramaExportContext ctx) =>
-            ctx.Emit(new ActorScaleAction
+            foreach (var block in n.BlockNodes)
             {
-                ActorId         = ActorId(n, ctx),
-                Scale           = ctx.Port(n, ActorScaleNode.ActorScaleName, Vector3.one),
-                DurationSeconds = ctx.Port(n, ActorScaleNode.Duration, 0f),
-                Ease            = ctx.Port(n, ActorScaleNode.ease, DG.Tweening.Ease.Linear),
-            });
+                switch (block)
+                {
+                    case PositionBlockNode p:
+                        ctx.Emit(new ActorMoveAction
+                        {
+                            ActorId         = actorId,
+                            Position        = ctx.Port(p, PositionBlockNode.ActorPositionName, Vector2.zero),
+                            DurationSeconds = ctx.Port(p, PositionBlockNode.Duration, 0f),
+                            Ease            = ctx.Port(p, PositionBlockNode.ease, DG.Tweening.Ease.Linear),
+                        });
+                        break;
 
-        static void ExportActorRotate(ActorRotationNode n, DramaExportContext ctx) =>
-            ctx.Emit(new ActorRotateAction
+                    case RotationBlockNode r:
+                        ctx.Emit(new ActorRotateAction
+                        {
+                            ActorId         = actorId,
+                            Rotation        = ctx.Port(r, RotationBlockNode.ActorRotationName, Vector3.zero),
+                            DurationSeconds = ctx.Port(r, RotationBlockNode.Duration, 0f),
+                            Ease            = ctx.Port(r, RotationBlockNode.ease, DG.Tweening.Ease.Linear),
+                        });
+                        break;
+
+                    case ScaleBlockNode s:
+                        ctx.Emit(new ActorScaleAction
+                        {
+                            ActorId         = actorId,
+                            Scale           = ctx.Port(s, ScaleBlockNode.ActorScaleName, Vector3.one),
+                            DurationSeconds = ctx.Port(s, ScaleBlockNode.Duration, 0f),
+                            Ease            = ctx.Port(s, ScaleBlockNode.ease, DG.Tweening.Ease.Linear),
+                        });
+                        break;
+
+                    default:
+                        ctx.Warn($"立绘变换节点不支持「{block.GetType().Name}」块，已跳过", n);
+                        break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 背景变化（背景的位移 / 旋转 / 缩放，做镜头感用）。
+        ///
+        /// 块类型和 <see cref="ExportActorTransform"/> 是同一批，但产出的是背景那套指令 ——
+        /// 再次说明"是容器决定语义，不是块"。
+        ///
+        /// 注意这里<b>不</b>负责换图，换图是「切换背景」节点（<see cref="ChangeBgPicNode"/>）的事。
+        /// </summary>
+        static void ExportScreenTransform(ScreenTransformNode n, DramaExportContext ctx)
+        {
+            var bgId = ctx.Port(n, ScreenTransformNode.ScreenID, -1L);
+            if (bgId <= 0) ctx.Warn("背景变化节点没填场景ID", n);
+
+            if (n.BlockCount == 0) { ctx.Warn("背景变化节点里没有变换块", n); return; }
+
+            foreach (var block in n.BlockNodes)
             {
-                ActorId         = ActorId(n, ctx),
-                Rotation        = ctx.Port(n, ActorRotationNode.ActorRotationName, Vector3.zero),
-                DurationSeconds = ctx.Port(n, ActorRotationNode.Duration, 0f),
-                Ease            = ctx.Port(n, ActorRotationNode.ease, DG.Tweening.Ease.Linear),
-            });
+                switch (block)
+                {
+                    case PositionBlockNode p:
+                        ctx.Emit(new BackgroundMoveAction
+                        {
+                            BackgroundId    = bgId,
+                            Position        = ctx.Port(p, PositionBlockNode.ActorPositionName, Vector2.zero),
+                            DurationSeconds = ctx.Port(p, PositionBlockNode.Duration, 0f),
+                            Ease            = ctx.Port(p, PositionBlockNode.ease, DG.Tweening.Ease.Linear),
+                        });
+                        break;
+
+                    case RotationBlockNode r:
+                        ctx.Emit(new BackgroundRotateAction
+                        {
+                            BackgroundId    = bgId,
+                            Rotation        = ctx.Port(r, RotationBlockNode.ActorRotationName, Vector3.zero),
+                            DurationSeconds = ctx.Port(r, RotationBlockNode.Duration, 0f),
+                            Ease            = ctx.Port(r, RotationBlockNode.ease, DG.Tweening.Ease.Linear),
+                        });
+                        break;
+
+                    case ScaleBlockNode s:
+                        ctx.Emit(new BackgroundScaleAction
+                        {
+                            BackgroundId    = bgId,
+                            Scale           = ctx.Port(s, ScaleBlockNode.ActorScaleName, Vector3.one),
+                            DurationSeconds = ctx.Port(s, ScaleBlockNode.Duration, 0f),
+                            Ease            = ctx.Port(s, ScaleBlockNode.ease, DG.Tweening.Ease.Linear),
+                        });
+                        break;
+
+                    default:
+                        ctx.Warn($"背景变化节点不支持「{block.GetType().Name}」块，已跳过", n);
+                        break;
+                }
+            }
+        }
 
         static void ExportActorSkin(ActorSetSkin n, DramaExportContext ctx)
         {
@@ -307,6 +389,7 @@ namespace Drama.Editor.Export
                             Amplitude       = ctx.Port(v, VibrateNode.Amplitude, 0.5f),
                             Axis            = MapAxis(ctx.Port(v, VibrateNode.ShakeAxis, Drama.Editor.ShakeAxis.PositionXY)),
                             IntervalSeconds = ctx.Port(v, VibrateNode.Interval, 0.3f),
+                            SmoothSpeed     = ctx.Port(v, VibrateNode.SmoothSpeed, 5f),
                             DurationSeconds = ctx.Port(v, VibrateNode.Duration, 0.3f),
                             RestoreOnEnd    = ctx.Port(v, VibrateNode.RestoreOnEnd, true),
                         });

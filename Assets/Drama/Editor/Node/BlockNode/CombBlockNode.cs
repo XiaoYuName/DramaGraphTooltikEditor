@@ -6,6 +6,7 @@ namespace Drama.Editor
 {
     [System.Serializable]
     [Node("命令/过度","Assets/Drama/Assets/Comb.png","百叶窗")]
+    [UseWithContext(typeof(ScreenEffNode))]
     public class CombBlockNode : BlockNode
     {
         public const string InputKind = "input_kind";
