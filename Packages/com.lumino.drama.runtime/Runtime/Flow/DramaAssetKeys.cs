@@ -14,7 +14,9 @@ namespace Drama.Runtime.Flow
         // ---- 走 IDramaAssetProvider（宿主的 Addressables 封装）
         public readonly IReadOnlyCollection<int> ActorIds;
         public readonly IReadOnlyCollection<long> BackgroundIds;
-        public readonly IReadOnlyCollection<string> MusicIds;
+
+        // BGM 不在这里：MusicId 是宿主音频配置表的 ID，clip 跟着配置表一起在内存里，
+        // 没有"要预载的资源"这回事。本结构体里的东西一律是【需要预载的】，别往里塞别的。
 
         // ---- 走 IDramaLocalization（Unity Localization）
         /// <summary>台词 / 说话人名 / 选项文字用到的 String Table 表名。</summary>
@@ -26,12 +28,11 @@ namespace Drama.Runtime.Flow
         /// <summary>台词语音用到的 Asset Table 表名，交给 PreloadAssetTablesAsync。</summary>
         public readonly IReadOnlyCollection<string> VoiceTables;
 
-        DramaAssetKeys(HashSet<int> actors, HashSet<long> backgrounds, HashSet<string> music,
+        DramaAssetKeys(HashSet<int> actors, HashSet<long> backgrounds,
                        List<LocalizedRef> voices, HashSet<string> stringTables, HashSet<string> voiceTables)
         {
             ActorIds = actors;
             BackgroundIds = backgrounds;
-            MusicIds = music;
             VoiceRefs = voices;
             StringTables = stringTables;
             VoiceTables = voiceTables;
@@ -41,14 +42,13 @@ namespace Drama.Runtime.Flow
         {
             var actors = new HashSet<int>();
             var backgrounds = new HashSet<long>();
-            var music = new HashSet<string>();
             var voices = new List<LocalizedRef>();
             var voiceSeen = new HashSet<string>();
             var tables = new HashSet<string>();
             var voiceTables = new HashSet<string>();
 
             if (script?.Actions == null)
-                return new DramaAssetKeys(actors, backgrounds, music, voices, tables, voiceTables);
+                return new DramaAssetKeys(actors, backgrounds, voices, tables, voiceTables);
 
             // 这里刻意遍历整张表而不是 WalkAll：
             // 预载多load几个没走到的分支，远比播到一半发现没加载要好
@@ -79,9 +79,7 @@ namespace Drama.Runtime.Flow
                         if (bg.BackgroundId > 0) backgrounds.Add(bg.BackgroundId);
                         break;
 
-                    case PlayMusicAction bgm:
-                        if (!string.IsNullOrEmpty(bgm.MusicId)) music.Add(bgm.MusicId);
-                        break;
+                    // PlayMusicAction 刻意不收：MusicId 不是要加载的资源，见结构体开头的说明
 
                     case ActorShowAction a:          actors.Add(a.ActorId); break;
                     case ActorMoveAction a:          actors.Add(a.ActorId); break;
@@ -97,7 +95,7 @@ namespace Drama.Runtime.Flow
             }
 
             actors.Remove(-1);   // -1 是"没指定角色"的哨兵，别去加载它
-            return new DramaAssetKeys(actors, backgrounds, music, voices, tables, voiceTables);
+            return new DramaAssetKeys(actors, backgrounds, voices, tables, voiceTables);
         }
 
         static void AddTable(HashSet<string> tables, LocalizedRef reference)

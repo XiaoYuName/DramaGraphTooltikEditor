@@ -202,9 +202,6 @@ namespace Drama.Runtime.Tests
         public UniTask<Sprite> LoadBackgroundAsync(long backgroundId, CancellationToken ct) =>
             UniTask.FromResult<Sprite>(null);
 
-        public UniTask<AudioClip> LoadMusicAsync(string musicId, CancellationToken ct) =>
-            UniTask.FromResult<AudioClip>(null);
-
         public void ReleaseAll() => ReleaseAllCalls++;
     }
 
@@ -212,9 +209,11 @@ namespace Drama.Runtime.Tests
     {
         public int VoicePlayCount { get; private set; }
         public int VoiceStopCount { get; private set; }
-        public AudioClip LastMusic;
 
-        public void PlayMusic(AudioClip clip) => LastMusic = clip;
+        /// <summary>最后一次播的 BGM 配置表 ID。</summary>
+        public string LastMusicId;
+
+        public void PlayMusic(string musicId) => LastMusicId = musicId;
         public void PlayVoice(AudioClip clip) => VoicePlayCount++;
         public void StopVoice() => VoiceStopCount++;
     }

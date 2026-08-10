@@ -49,18 +49,18 @@ namespace Drama.Runtime.Tests
         }
 
         [Test]
-        public void 立绘背景音乐按类型分桶()
+        public void 立绘和背景按类型分桶()
         {
             var keys = DramaAssetKeys.Collect(Make(
                 new ActorShowAction { ActorId = 10000 },
                 new ActorHighlightAction { ActorId = 10001 },
                 new ActorMoveAction { ActorId = 10000 },
                 new ChangeBackgroundAction { BackgroundId = 500 },
+                // BGM 不该被收进来 —— MusicId 是音频配置表 ID，不是要预载的资源
                 new PlayMusicAction { MusicId = "bgm_01" }));
 
             CollectionAssert.AreEquivalent(new[] { 10000, 10001 }, keys.ActorIds);
             CollectionAssert.AreEquivalent(new long[] { 500 }, keys.BackgroundIds);
-            CollectionAssert.AreEquivalent(new[] { "bgm_01" }, keys.MusicIds);
         }
 
         [Test]
@@ -68,12 +68,10 @@ namespace Drama.Runtime.Tests
         {
             var keys = DramaAssetKeys.Collect(Make(
                 new ActorShowAction { ActorId = -1 },
-                new ChangeBackgroundAction { BackgroundId = -1 },
-                new PlayMusicAction { MusicId = "" }));
+                new ChangeBackgroundAction { BackgroundId = -1 }));
 
             CollectionAssert.IsEmpty(keys.ActorIds);
             CollectionAssert.IsEmpty(keys.BackgroundIds);
-            CollectionAssert.IsEmpty(keys.MusicIds);
         }
 
         [Test]

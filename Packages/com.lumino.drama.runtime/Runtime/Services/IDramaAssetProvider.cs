@@ -24,7 +24,8 @@ namespace Drama.Runtime.Services
 
         UniTask<Sprite> LoadBackgroundAsync(long backgroundId, CancellationToken ct);
 
-        UniTask<AudioClip> LoadMusicAsync(string musicId, CancellationToken ct);
+        // BGM 不在这里：MusicId 是宿主音频系统的配置表 ID，clip 由那套系统自己持有，
+        // 剧情这边既不该加载也不该释放。见 IDramaAudio.PlayMusic。
 
         /// <summary>整段剧本结束时释放本段加载的全部资源。</summary>
         void ReleaseAll();
@@ -65,10 +66,19 @@ namespace Drama.Runtime.Services
         UniTask ReceiveTaskAsync(long taskId, CancellationToken ct);
     }
 
-    /// <summary>音频播放。</summary>
+    /// <summary>
+    /// 音频播放。
+    ///
+    /// <b>BGM 传 ID，语音传 clip</b> —— 不是不统一，是两者来源本来就不同：
+    /// BGM 走宿主自己的音频配置表（ID → clip 那一步归宿主，剧情不该知道），
+    /// 台词语音是多语言资源，由 <see cref="IDramaLocalization.ResolveVoiceAsync"/>
+    /// 从 Asset Table 里取出来，到这儿已经是 clip 了。
+    /// </summary>
     public interface IDramaAudio
     {
-        void PlayMusic(AudioClip clip);
+        /// <summary>播 BGM。<paramref name="musicId"/> 是宿主音频配置表的 ID，原样透传。</summary>
+        void PlayMusic(string musicId);
+
         void PlayVoice(AudioClip clip);
         void StopVoice();
     }
