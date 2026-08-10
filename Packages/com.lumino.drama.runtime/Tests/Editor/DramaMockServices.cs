@@ -162,21 +162,12 @@ namespace Drama.Runtime.Tests
         public readonly Dictionary<string, string> Overrides = new Dictionary<string, string>();
         public readonly List<string> PreloadedStringTables = new List<string>();
         public readonly List<string> PreloadedAssetTables = new List<string>();
-        public readonly List<LocalizedRef> RequestedVoices = new List<LocalizedRef>();
-
-        public AudioClip VoiceToReturn;
 
         public string Resolve(LocalizedRef reference)
         {
             if (reference.IsEmpty) return string.Empty;
             var key = reference.ToString();
             return Overrides.TryGetValue(key, out var v) ? v : key;
-        }
-
-        public UniTask<AudioClip> ResolveVoiceAsync(LocalizedRef reference, CancellationToken ct)
-        {
-            RequestedVoices.Add(reference);
-            return UniTask.FromResult(VoiceToReturn);
         }
 
         public UniTask PreloadStringTablesAsync(IReadOnlyCollection<string> tables, CancellationToken ct)
@@ -207,14 +198,16 @@ namespace Drama.Runtime.Tests
 
     public sealed class MockAudio : IDramaAudio
     {
-        public int VoicePlayCount { get; private set; }
         public int VoiceStopCount { get; private set; }
 
         /// <summary>最后一次播的 BGM 配置表 ID。</summary>
         public string LastMusicId;
 
+        /// <summary>依次记下播过的语音引用。</summary>
+        public readonly List<LocalizedRef> PlayedVoices = new List<LocalizedRef>();
+
         public void PlayMusic(string musicId) => LastMusicId = musicId;
-        public void PlayVoice(AudioClip clip) => VoicePlayCount++;
+        public void PlayVoice(LocalizedRef reference) => PlayedVoices.Add(reference);
         public void StopVoice() => VoiceStopCount++;
     }
 

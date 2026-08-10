@@ -13,25 +13,23 @@ namespace Drama.Runtime.Handlers
     /// </summary>
     public sealed class TalkActionHandler : DramaSimpleActionHandler<TalkAction>
     {
-        /// <summary>主角名字怎么取。宿主在装配时塞进来（一般是玩家昵称）。</summary>
-        public System.Func<string> HeroNameProvider;
-
-        /// <summary>角色ID → 显示名。取不到就返回空。</summary>
-        public System.Func<int, string> ActorNameProvider;
-
         protected override async UniTask RunAsync(TalkAction a, IDramaContext ctx, CancellationToken ct)
         {
+            // 全部原样透传，一个都不解析 —— 原因见 DialogueLine 的注释。
+            // 这里刻意没有任何 await：台词要立刻显示出来，不能被语音加载挡住。
             var line = new DialogueLine
             {
-                Body        = ctx.Localization.Resolve(a.Text),
-                SpeakerName = ResolveSpeakerName(a, ctx),
-                NameColor   = a.NameColor,
-                Balloon     = a.Balloon,
-                Voice       = a.Voice.IsEmpty ? null : await ctx.Localization.ResolveVoiceAsync(a.Voice, ct),
+                TextRef        = a.Text,
+                Speaker        = a.Speaker,
+                ActorId        = a.ActorId,
+                SpeakerNameRef = a.SpeakerName,
+                NameColor      = a.NameColor,
+                Balloon        = a.Balloon,
+                VoiceRef       = a.Voice,
             };
 
-            if (line.Voice != null && ctx.Mode != EDramaPlaybackMode.Skip)
-                ctx.Audio.PlayVoice(line.Voice);
+            if (!a.Voice.IsEmpty && ctx.Mode != EDramaPlaybackMode.Skip)
+                ctx.Audio.PlayVoice(a.Voice);
 
             // 打字机跑完（或被玩家点断）
             await ctx.Dialogue.ShowLineAsync(line, ctx.Mode, ct);
@@ -52,18 +50,6 @@ namespace Drama.Runtime.Handlers
             else
             {
                 await ctx.Dialogue.WaitForAdvanceAsync(ct);
-            }
-        }
-
-        string ResolveSpeakerName(TalkAction a, IDramaContext ctx)
-        {
-            switch (a.Speaker)
-            {
-                case ESpeakerKind.Aside:  return string.Empty;
-                case ESpeakerKind.Hero:   return HeroNameProvider?.Invoke() ?? string.Empty;
-                case ESpeakerKind.Custom: return ctx.Localization.Resolve(a.SpeakerName);
-                case ESpeakerKind.Actor:  return ActorNameProvider?.Invoke(a.ActorId) ?? string.Empty;
-                default:                  return string.Empty;
             }
         }
     }

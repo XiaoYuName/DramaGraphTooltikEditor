@@ -5,16 +5,43 @@ using UnityEngine;
 
 namespace Drama.Runtime.Services
 {
-    /// <summary>一句已经解好多语言的台词。View 只管显示，不用再去查表。</summary>
+    /// <summary>
+    /// 一句台词。<b>全是引用，没有解析好的字符串</b> —— 刻意的。
+    ///
+    /// 解析成 string 交给 View 的话，玩家在这句台词显示期间切语言就没人管了。
+    /// 交引用，View 才能挂 Unity Localization 的绑定组件（把 <c>OnUpdateString</c>
+    /// 接到打字机而不是 <c>text.text</c>），切语言自动重跑。
+    ///
+    /// <b>说话人名字连引用都不统一。</b> 四个来源：旁白空、主角是玩家昵称、
+    /// 自定义是多语言引用、指定角色要查角色表 —— 其中<b>玩家昵称根本没有 Table/Key</b>。
+    /// 而且"角色ID → 名字"是宿主配置表的事，包不该知道。
+    /// 所以只交出寻址方式，View 按 <see cref="Speaker"/> 分支自己取。
+    /// </summary>
     public struct DialogueLine
     {
-        public string Body;
-        public string SpeakerName;
+        /// <summary>正文的多语言引用。</summary>
+        public LocalizedRef TextRef;
+
+        /// <summary>说话人寻址方式。View 按它决定名字从哪来。</summary>
+        public ESpeakerKind Speaker;
+
+        /// <summary><see cref="Speaker"/> 为 Actor 时有效，宿主自己拿它查角色表。</summary>
+        public int ActorId;
+
+        /// <summary><see cref="Speaker"/> 为 Custom 时有效，剧本里直接写的说话人名。</summary>
+        public LocalizedRef SpeakerNameRef;
+
         public Color NameColor;
         public EBalloonKind Balloon;
 
-        /// <summary>本句语音，可能为 null（没配语音）。</summary>
-        public AudioClip Voice;
+        /// <summary>
+        /// 本句语音的多语言引用，<c>IsEmpty</c> 表示没配语音。
+        ///
+        /// 同样不预解析：一是切语言时 View 要能重播，二是<b>预解析会让每句台词
+        /// 都等一次 Asset Table 加载</b>——语音是一句一个、没法全量预热的。
+        /// 播放走 <see cref="IDramaAudio.PlayVoice"/>，那边同样收引用。
+        /// </summary>
+        public LocalizedRef VoiceRef;
     }
 
     /// <summary>对话框。</summary>

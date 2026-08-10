@@ -45,13 +45,8 @@ namespace Drama.Runtime.Services
         /// </summary>
         string Resolve(LocalizedRef reference);
 
-        /// <summary>
-        /// 取台词语音。取不到就返回 null，Handler 会当没配语音处理。
-        ///
-        /// 保持异步是因为 Asset Table 天然是异步加载的，而且语音是一句一个、
-        /// 全量预载不现实；真要消除等待就在 <see cref="PreloadAssetTablesAsync"/> 里预热。
-        /// </summary>
-        UniTask<AudioClip> ResolveVoiceAsync(LocalizedRef reference, CancellationToken ct);
+        // 语音不在这里取：Handler 只把引用交给 IDramaAudio.PlayVoice，
+        // "引用 → clip" 那一步是宿主音频层内部的事，包不需要经手。
 
         /// <summary>播剧本前预热本段用到的文本表。</summary>
         UniTask PreloadStringTablesAsync(IReadOnlyCollection<string> tables, CancellationToken ct);
@@ -69,17 +64,24 @@ namespace Drama.Runtime.Services
     /// <summary>
     /// 音频播放。
     ///
-    /// <b>BGM 传 ID，语音传 clip</b> —— 不是不统一，是两者来源本来就不同：
-    /// BGM 走宿主自己的音频配置表（ID → clip 那一步归宿主，剧情不该知道），
-    /// 台词语音是多语言资源，由 <see cref="IDramaLocalization.ResolveVoiceAsync"/>
-    /// 从 Asset Table 里取出来，到这儿已经是 clip 了。
+    /// <b>两个都收"标识"而不是 clip</b> —— 谁去把标识变成声音，是宿主的事：
+    /// BGM 走宿主音频配置表的 ID，语音走多语言 Asset Table 的引用。
+    /// 这样 Handler 层不用为了播一句语音先 await 一次资源加载，台词也就不会被挡住。
     /// </summary>
     public interface IDramaAudio
     {
         /// <summary>播 BGM。<paramref name="musicId"/> 是宿主音频配置表的 ID，原样透传。</summary>
         void PlayMusic(string musicId);
 
-        void PlayVoice(AudioClip clip);
+        /// <summary>
+        /// 播台词语音。<paramref name="reference"/> 为空引用时什么都不做。
+        ///
+        /// <b>实现应当是"即发即忘"的</b>：内部异步取 clip 再播，不要让调用方等 ——
+        /// 台词该立刻显示出来，语音晚几帧进来是可以接受的。
+        /// 取不到就当没配语音，别抛。
+        /// </summary>
+        void PlayVoice(LocalizedRef reference);
+
         void StopVoice();
     }
 }

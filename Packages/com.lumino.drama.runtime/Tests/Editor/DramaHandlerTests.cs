@@ -76,7 +76,7 @@ namespace Drama.Runtime.Tests
             var awaiter = Run(new TalkActionHandler(), Line());
 
             Assert.AreEqual(1, m_S.Dialogue.Shown.Count);
-            Assert.AreEqual("T/K", m_S.Dialogue.Shown[0].Body);
+            Assert.AreEqual("K", m_S.Dialogue.Shown[0].TextRef.Key);
             Assert.IsFalse(awaiter.IsCompleted, "应该卡在等玩家翻页上");
 
             m_S.Dialogue.AdvanceLatch.Open();
@@ -124,49 +124,64 @@ namespace Drama.Runtime.Tests
         }
 
         [Test]
-        public void 台词_说话人名字按类型解析()
+        public void 台词_说话人寻址方式原样透传给View()
         {
-            var handler = new TalkActionHandler
-            {
-                HeroNameProvider  = () => "主角名",
-                ActorNameProvider = id => $"角色{id}",
-            };
+            // 名字怎么取是 View 的事（玩家昵称没有 Table/Key，角色名要查宿主配置表），
+            // Handler 只负责把寻址方式交出去，一个字符串都不解析
+            var handler = new TalkActionHandler();
 
-            string NameOf(TalkAction a)
+            DialogueLine LineOf(TalkAction a)
             {
                 m_S.Dialogue.Shown.Clear();
                 var awaiter = Run(handler, a);
                 m_S.Dialogue.AdvanceLatch.Open();
                 awaiter.GetResult();
-                return m_S.Dialogue.Shown[0].SpeakerName;
+                return m_S.Dialogue.Shown[0];
             }
 
-            Assert.AreEqual(string.Empty, NameOf(new TalkAction { Speaker = ESpeakerKind.Aside }));
-            Assert.AreEqual("主角名",      NameOf(new TalkAction { Speaker = ESpeakerKind.Hero }));
-            Assert.AreEqual("角色7",       NameOf(new TalkAction { Speaker = ESpeakerKind.Actor, ActorId = 7 }));
-            Assert.AreEqual("T/N",         NameOf(new TalkAction
+            Assert.AreEqual(ESpeakerKind.Aside, LineOf(new TalkAction { Speaker = ESpeakerKind.Aside }).Speaker);
+            Assert.AreEqual(ESpeakerKind.Hero, LineOf(new TalkAction { Speaker = ESpeakerKind.Hero }).Speaker);
+
+            var actor = LineOf(new TalkAction { Speaker = ESpeakerKind.Actor, ActorId = 7 });
+            Assert.AreEqual(ESpeakerKind.Actor, actor.Speaker);
+            Assert.AreEqual(7, actor.ActorId);
+
+            var custom = LineOf(new TalkAction
             {
                 Speaker = ESpeakerKind.Custom,
                 SpeakerName = new LocalizedRef { Table = "T", Key = "N" },
-            }));
+            });
+            Assert.AreEqual("T", custom.SpeakerNameRef.Table);
+            Assert.AreEqual("N", custom.SpeakerNameRef.Key);
         }
 
         [Test]
-        public void 台词_没配语音时不去加载()
+        public void 台词_正文交的是引用而不是解析结果()
+        {
+            var a = Line();
+            a.Text = new LocalizedRef { Table = "Dialogue", Key = "L1" };
+
+            var awaiter = Run(new TalkActionHandler(), a);
+            m_S.Dialogue.AdvanceLatch.Open();
+            awaiter.GetResult();
+
+            Assert.AreEqual("Dialogue", m_S.Dialogue.Shown[0].TextRef.Table);
+            Assert.AreEqual("L1", m_S.Dialogue.Shown[0].TextRef.Key);
+        }
+
+        [Test]
+        public void 台词_没配语音时不去播()
         {
             var awaiter = Run(new TalkActionHandler(), Line());
             m_S.Dialogue.AdvanceLatch.Open();
             awaiter.GetResult();
 
-            CollectionAssert.IsEmpty(m_S.Localization.RequestedVoices);
-            Assert.AreEqual(0, m_S.Audio.VoicePlayCount);
+            CollectionAssert.IsEmpty(m_S.Audio.PlayedVoices);
         }
 
         [Test]
-        public void 台词_配了语音就走多语言资源表加载并播放()
+        public void 台词_配了语音就把引用交给音频层()
         {
-            m_S.Localization.VoiceToReturn = AudioClip.Create("v", 16, 1, 8000, false);
-
             var a = Line();
             a.Voice = new LocalizedRef { Table = "Voice", Key = "0001" };
 
@@ -174,9 +189,24 @@ namespace Drama.Runtime.Tests
             m_S.Dialogue.AdvanceLatch.Open();
             awaiter.GetResult();
 
-            Assert.AreEqual(1, m_S.Localization.RequestedVoices.Count);
-            Assert.AreEqual("Voice/0001", m_S.Localization.RequestedVoices[0].ToString());
-            Assert.AreEqual(1, m_S.Audio.VoicePlayCount);
+            Assert.AreEqual(1, m_S.Audio.PlayedVoices.Count);
+            Assert.AreEqual("Voice/0001", m_S.Audio.PlayedVoices[0].ToString());
+
+            // 引用也要一并交给 View —— 切语言时它得靠这个重播
+            Assert.AreEqual("Voice/0001", m_S.Dialogue.Shown[0].VoiceRef.ToString());
+        }
+
+        [Test]
+        public void 台词_显示不会被语音加载挡住()
+        {
+            // 语音改成传引用之后 Handler 里不再 await 资源加载，
+            // 所以 ShowLineAsync 必须在同一个同步段里就被调到
+            var a = Line();
+            a.Voice = new LocalizedRef { Table = "Voice", Key = "0001" };
+
+            Run(new TalkActionHandler(), a);
+
+            Assert.AreEqual(1, m_S.Dialogue.Shown.Count, "台词应当立刻显示，不等语音");
         }
 
         // ============================================================ ActorShowAction
