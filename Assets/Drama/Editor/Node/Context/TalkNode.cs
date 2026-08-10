@@ -24,9 +24,13 @@ namespace Drama.Editor
         const string k_SpCharID   = "SpCharID";
         const string k_WaitMs     = "WaitMs";
         const string k_NameColor  = "NameColor";
+        
+        
 
         /// <summary>自定义说话人名的多语言端口。只在 说话人 == Unknown 时存在。</summary>
         internal const string k_SpeakerName = "SpeakerName";
+        
+        public const string TalkFarme = "TalkFarme";
 
 
 
@@ -40,6 +44,11 @@ namespace Drama.Editor
 
             context.AddOutputPort<EBallonKind>(k_Ballon)
                 .WithDisplayName("对话框动效")
+                .Build();
+            
+            context.AddInputPort<TalkFrame>(TalkFarme)
+                .WithDisplayName("对话框")
+                .WithDefaultValue(TalkFrame.Normal)
                 .Build();
 
 

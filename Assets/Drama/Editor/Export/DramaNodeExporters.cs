@@ -58,6 +58,11 @@ namespace Drama.Editor.Export
                 case LocalizationNode _:       return true;   // 值提供者，被别人求值
                 case LocalizationAudioNode _:  return true;
 
+                // 结束不是一条指令，是"Next 为空"这个状态。
+                // 本节点没有输出流程端口 → ResolveTargets 返回空 → 上游的 Next 里没有它
+                // → Next.Length == 0 → 执行流到此为止。所以这里什么都不用产出。
+                case EndDramaNode _:           return true;
+
                 default:
                     return false;
             }
