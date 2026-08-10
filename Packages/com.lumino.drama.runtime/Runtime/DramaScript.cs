@@ -386,6 +386,8 @@ namespace Drama.Runtime
         [LabelText("轴")]       public EShakeAxis Axis;
         [LabelText("间隔(秒)")] public float IntervalSeconds = 0.3f;
         [LabelText("时长(秒)")] public float DurationSeconds = 0.3f;
+        /// <summary>趋近目标点的速度，越大越"硬"。原实现 ≤0 兜底 5。</summary>
+        [LabelText("平滑速度")] public float SmoothSpeed = 5f;
         [LabelText("结束归位")] public bool RestoreOnEnd = true;
         public override string Summary => $"震动 · 角色{ActorId} · {DurationSeconds:0.##}s";
     }
@@ -459,6 +461,48 @@ namespace Drama.Runtime
         [LabelText("淡入(秒)")] public float InSeconds;
         [LabelText("淡出(秒)")] public float OutSeconds;
         public override string Summary => $"背景 → {BackgroundId}（{Transition}）";
+    }
+
+    // ---- 背景变换（推远 / 平移 / 转一下，做镜头感用）
+    //
+    // BackgroundId 目前只有一张背景层，实现方大可以忽略它 ——
+    // 留着是因为数据一旦导出就不好改（[SerializeReference]），
+    // 而接口改起来是免费的。跟 ActorId 一个路子。
+
+    /// <summary>背景位移。</summary>
+    [Serializable]
+    public sealed class BackgroundMoveAction : DramaAction
+    {
+        public override string Kind => "背景位置";
+        [LabelText("背景ID")]   public long BackgroundId = -1;
+        [LabelText("目标位置")] public Vector2 Position;
+        [LabelText("时长(秒)")] public float DurationSeconds;
+        [LabelText("缓动")]     public Ease Ease = Ease.Linear;
+        public override string Summary => $"背景位置 · {BackgroundId} → {Position}";
+    }
+
+    /// <summary>背景旋转。</summary>
+    [Serializable]
+    public sealed class BackgroundRotateAction : DramaAction
+    {
+        public override string Kind => "背景旋转";
+        [LabelText("背景ID")]   public long BackgroundId = -1;
+        [LabelText("目标角度")] public Vector3 Rotation;
+        [LabelText("时长(秒)")] public float DurationSeconds;
+        [LabelText("缓动")]     public Ease Ease = Ease.Linear;
+        public override string Summary => $"背景旋转 · {BackgroundId} → {Rotation}";
+    }
+
+    /// <summary>背景缩放。</summary>
+    [Serializable]
+    public sealed class BackgroundScaleAction : DramaAction
+    {
+        public override string Kind => "背景缩放";
+        [LabelText("背景ID")]   public long BackgroundId = -1;
+        [LabelText("目标缩放")] public Vector3 Scale = Vector3.one;
+        [LabelText("时长(秒)")] public float DurationSeconds;
+        [LabelText("缓动")]     public Ease Ease = Ease.Linear;
+        public override string Summary => $"背景缩放 · {BackgroundId} → {Scale}";
     }
 
     /// <summary>播放 BGM。</summary>

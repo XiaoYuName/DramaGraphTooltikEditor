@@ -250,6 +250,34 @@ namespace Drama.Runtime.Tests
         }
     }
 
+    public sealed class MockBackground : IDramaBackground
+    {
+        /// <summary>只有一张背景层，所以根节点也只有一个 —— 跟实际实现一致。</summary>
+        public readonly Transform Root = new GameObject("MockBackground").transform;
+
+        public long LastChangedTo = -1;
+        public int ChangeCalls { get; private set; }
+        public int CompleteCalls { get; private set; }
+        public int ReleaseAllCalls { get; private set; }
+
+        /// <summary>置 true 模拟"背景还没建出来"，用来测 Handler 会不会安全跳过。</summary>
+        public bool RootMissing;
+
+        public UniTask ChangeAsync(long backgroundId, Sprite sprite, EBgTransitionKind kind,
+                                   float inSeconds, float outSeconds, CancellationToken ct)
+        {
+            ChangeCalls++;
+            LastChangedTo = backgroundId;
+            return UniTask.CompletedTask;
+        }
+
+        public Transform GetRoot(long backgroundId) => RootMissing ? null : Root;
+
+        public void CompleteAllTweens() => CompleteCalls++;
+
+        public void ReleaseAll() => ReleaseAllCalls++;
+    }
+
     public sealed class MockGameBridge : IDramaGameBridge
     {
         public readonly List<long> ReceivedTasks = new List<long>();
@@ -268,6 +296,7 @@ namespace Drama.Runtime.Tests
         public readonly MockChoiceView Choice = new MockChoiceView();
         public readonly MockActorStage Actors = new MockActorStage();
         public readonly MockScreen Screen = new MockScreen();
+        public readonly MockBackground Background = new MockBackground();
         public readonly MockLocalization Localization = new MockLocalization();
         public readonly MockAssetProvider Assets = new MockAssetProvider();
         public readonly MockAudio Audio = new MockAudio();
@@ -281,6 +310,7 @@ namespace Drama.Runtime.Tests
             Context.Choice = Choice;
             Context.Actors = Actors;
             Context.Screen = Screen;
+            Context.Background = Background;
             Context.Localization = Localization;
             Context.Assets = Assets;
             Context.Audio = Audio;

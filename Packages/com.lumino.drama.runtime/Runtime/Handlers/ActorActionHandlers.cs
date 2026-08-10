@@ -128,6 +128,71 @@ namespace Drama.Runtime.Handlers
         }
     }
 
+    /// <summary>
+    /// 立绘小动作：从当前位置相对偏移一段，可循环。
+    ///
+    /// <b><see cref="ActorOffsetMoveAction.LoopCount"/> 为负数 = 无限循环</b>，
+    /// 这种情况下 Handler 立刻返回不等它（否则剧本会永远卡在这一条）。
+    /// 这条游离的 Tween 挂在立绘的 Root 上，由 <see cref="Services.IActorStage.CompleteAllTweens"/> 收口。
+    /// </summary>
+    public sealed class ActorOffsetMoveActionHandler : DramaSimpleActionHandler<ActorOffsetMoveAction>
+    {
+        protected override UniTask RunAsync(ActorOffsetMoveAction a, IDramaContext ctx, CancellationToken ct)
+        {
+            var actor = ctx.Actors.Find(a.ActorId);
+            if (actor == null) return UniTask.CompletedTask;
+
+            var duration = DramaWait.Scale(a.DurationSeconds, ctx.Mode);
+            if (duration <= 0f)
+            {
+                actor.Root.localPosition += a.Offset;
+                return UniTask.CompletedTask;
+            }
+
+            var tween = actor.Root.DOLocalMove(a.Offset, duration)
+                             .SetRelative(true)             // 相对当前位置
+                             .SetEase(a.Ease)
+                             .SetLoops(a.LoopCount, a.LoopType);
+
+            if (a.LoopCount < 0)
+            {
+                tween.ToUniTask(cancellationToken: ct).SuppressCancellationThrow().Forget();
+                return UniTask.CompletedTask;
+            }
+
+            return tween.ToUniTask(cancellationToken: ct);
+        }
+    }
+
+    /// <summary>立绘抖动（硬抖）。手感见 <see cref="DramaShake"/>。</summary>
+    public sealed class ActorShakeActionHandler : DramaSimpleActionHandler<ActorShakeAction>
+    {
+        protected override UniTask RunAsync(ActorShakeAction a, IDramaContext ctx, CancellationToken ct)
+        {
+            var actor = ctx.Actors.Find(a.ActorId);
+            if (actor == null) return UniTask.CompletedTask;
+
+            return DramaShake.HardAsync(actor.Root, a.Axis, a.Amplitude,
+                                        DramaWait.Scale(a.DurationSeconds, ctx.Mode),
+                                        a.RestoreOnEnd, ct);
+        }
+    }
+
+    /// <summary>立绘震动（柔震）。手感见 <see cref="DramaShake"/>。</summary>
+    public sealed class ActorVibrateActionHandler : DramaSimpleActionHandler<ActorVibrateAction>
+    {
+        protected override UniTask RunAsync(ActorVibrateAction a, IDramaContext ctx, CancellationToken ct)
+        {
+            var actor = ctx.Actors.Find(a.ActorId);
+            if (actor == null) return UniTask.CompletedTask;
+
+            // 间隔不跟着快进缩 —— 缩了就变成另一种频率的动作了，只缩总时长
+            return DramaShake.SoftAsync(actor.Root, a.Axis, a.Amplitude, a.IntervalSeconds, a.SmoothSpeed,
+                                        DramaWait.Scale(a.DurationSeconds, ctx.Mode),
+                                        a.RestoreOnEnd, ct);
+        }
+    }
+
     /// <summary>讲话人突出：把非说话人置灰 / 微缩。</summary>
     public sealed class ActorHighlightActionHandler : DramaSimpleActionHandler<ActorHighlightAction>
     {

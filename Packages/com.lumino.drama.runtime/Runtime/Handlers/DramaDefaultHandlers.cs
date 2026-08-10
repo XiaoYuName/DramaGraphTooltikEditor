@@ -30,6 +30,12 @@ namespace Drama.Runtime.Handlers
             registry.Register(new ScreenTransitionActionHandler());
             registry.Register(new PlayMusicActionHandler());
 
+            // ---- 背景
+            registry.Register(new ChangeBackgroundActionHandler());
+            registry.Register(new BackgroundMoveActionHandler());
+            registry.Register(new BackgroundRotateActionHandler());
+            registry.Register(new BackgroundScaleActionHandler());
+
             // ---- 立绘
             registry.Register(new ActorShowActionHandler());
             registry.Register(new ActorMoveActionHandler());
@@ -38,10 +44,12 @@ namespace Drama.Runtime.Handlers
             registry.Register(new ActorSetSkinActionHandler());
             registry.Register(new ActorPlayAnimationActionHandler());
             registry.Register(new ActorHighlightActionHandler());
+            registry.Register(new ActorOffsetMoveActionHandler());
+            registry.Register(new ActorShakeActionHandler());
+            registry.Register(new ActorVibrateActionHandler());
 
-            // ---- 还没实现的（宿主自己补，或者等后续版本）：
-            //   ActorOffsetMoveAction / ActorShakeAction / ActorVibrateAction
-            //   ChangeBackgroundAction（缺一个「背景」服务接口，还没定）
+            // 至此所有 XxxAction 都有 Handler 了。加新指令时记得回来登记一条，
+            // 漏了也不会播到一半才炸 —— DramaHandlerRegistry.FindMissing 会在播放前报出来。
             // 漏了也不会播到一半才炸 —— DramaHandlerRegistry.FindMissing 会在播放前报出来
 
             return registry;
