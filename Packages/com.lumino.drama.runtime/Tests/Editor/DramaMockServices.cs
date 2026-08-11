@@ -187,9 +187,6 @@ namespace Drama.Runtime.Tests
     {
         public int ReleaseAllCalls { get; private set; }
 
-        public UniTask<GameObject> LoadActorAsync(int actorId, CancellationToken ct) =>
-            UniTask.FromResult<GameObject>(null);
-
         public UniTask<Sprite> LoadBackgroundAsync(long backgroundId, CancellationToken ct) =>
             UniTask.FromResult<Sprite>(null);
 

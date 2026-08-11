@@ -23,6 +23,11 @@ namespace Drama.Runtime.Services
         /// 实现方不需要自己碰资源系统。
         ///
         /// 转场为 <see cref="EBgTransitionKind.None"/> 时应当瞬切，两个时长都忽略。
+        ///
+        /// <b>实现要点：换图时要掐掉背景自己还在跑的变换动画</b>（位移 / 旋转 / 缩放），
+        /// 否则"推镜到一半换了张图"会让新图接着上一张的运镜跑下去。
+        /// 是<b>掐掉</b>（停在当前值）而不是推到终点，也<b>不要</b>顺手归零 transform ——
+        /// 归零是 <see cref="ReleaseAll"/> 的事，剧本要新图从原点开始会自己接一条位置指令。
         /// </summary>
         UniTask ChangeAsync(long backgroundId, Sprite sprite, EBgTransitionKind kind,
                             float inSeconds, float outSeconds, CancellationToken ct);
@@ -36,7 +41,13 @@ namespace Drama.Runtime.Services
         /// <summary>把还在跑的背景动画立刻推到终点。剧本结束 / 跳转时调。</summary>
         void CompleteAllTweens();
 
-        /// <summary>清空背景并释放资源。</summary>
+        /// <summary>
+        /// 清空背景并释放资源。
+        ///
+        /// <b>要把根节点的 position / rotation / scale 一起归零。</b>
+        /// 这三个是跨指令持续的状态，不归零的话上一本剧本的运镜会带到下一本 ——
+        /// 这个 bug 只在 Goto 连播时才现，单本测试测不出来。
+        /// </summary>
         void ReleaseAll();
     }
 }

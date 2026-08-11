@@ -19,10 +19,12 @@ namespace Drama.Runtime.Services
     /// </summary>
     public interface IDramaAssetProvider
     {
-        /// <summary>立绘。返回的是可实例化的 Prefab（SkeletonGraphic 或 SkeletonAnimation 都行）。</summary>
-        UniTask<GameObject> LoadActorAsync(int actorId, CancellationToken ct);
-
         UniTask<Sprite> LoadBackgroundAsync(long backgroundId, CancellationToken ct);
+
+        // 立绘不在这里：包无法规定"一个立绘资源"到底是什么 —— 可能是 Prefab，
+        // 可能是 Spine 的 SkeletonDataAsset，也可能是一张贴图。
+        // 而且包里没有任何东西需要它（Handler 只调 IActorStage.AcquireAsync），
+        // 所以由宿主自己定加载方式，包只通过 DramaAssetKeys.ActorIds 告诉宿主"本段要用哪些角色"。
 
         // BGM 不在这里：MusicId 是宿主音频系统的配置表 ID，clip 由那套系统自己持有，
         // 剧情这边既不该加载也不该释放。见 IDramaAudio.PlayMusic。
