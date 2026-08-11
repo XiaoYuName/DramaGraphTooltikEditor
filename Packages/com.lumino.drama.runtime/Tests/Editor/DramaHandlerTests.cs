@@ -211,12 +211,11 @@ namespace Drama.Runtime.Tests
 
         // ============================================================ ActorShowAction
 
-        ActorShowAction Show(EActorShowKind kind, bool wait) => new ActorShowAction
+        ActorShowAction Show(EActorShowKind kind) => new ActorShowAction
         {
             ActorId = 100,
             ShowKind = kind,
             DurationSeconds = 1f,
-            WaitForCompletion = wait,
             Position = new Vector2(3f, 4f),
             Scale = new Vector2(0.5f, 0.5f),   // 倍率，不是百分比
         };
@@ -224,7 +223,7 @@ namespace Drama.Runtime.Tests
         [Test]
         public void 立绘_先摆好布局再放动画()
         {
-            RunToEnd(new ActorShowActionHandler(), Show(EActorShowKind.Show, true));
+            RunToEnd(new ActorShowActionHandler(), Show(EActorShowKind.Show));
 
             var actor = m_S.Actors.Get(100);
             Assert.AreEqual(new Vector3(3f, 4f, 0f), actor.Root.localPosition);
@@ -232,11 +231,28 @@ namespace Drama.Runtime.Tests
         }
 
         [Test]
-        public void 立绘_勾了等待动画就真的等()
+        public void 立绘_方向要交给舞台()
         {
+            var a = Show(EActorShowKind.Show);
+            a.Direction = EActorShowDirection.Right;
+
+            RunToEnd(new ActorShowActionHandler(), a);
+
+            // 方向不能只导出不用 —— 这条测试就是防止 SetDirection 哪天又被漏掉
+            Assert.AreEqual(EActorShowDirection.Right, m_S.Actors.Directions[100]);
+
+            // 而且 Position 要在方向之后写，不能被方向覆盖
+            Assert.AreEqual(new Vector3(3f, 4f, 0f), m_S.Actors.Get(100).Root.localPosition);
+        }
+
+        [Test]
+        public void 立绘_一律等动画跑完才继续()
+        {
+            // 没有"不等动画"这个开关了 —— 想并行请在图里连并行分支。
+            // 这条测试锁住"总是等"，防止哪天又冒出个 fire-and-forget 分支
             m_S.Actors.AutoFinishVisibility = false;
 
-            var awaiter = Run(new ActorShowActionHandler(), Show(EActorShowKind.FadeIn, wait: true));
+            var awaiter = Run(new ActorShowActionHandler(), Show(EActorShowKind.FadeIn));
 
             Assert.IsFalse(awaiter.IsCompleted);
             m_S.Actors.VisibilityLatch.Open();
@@ -244,23 +260,9 @@ namespace Drama.Runtime.Tests
         }
 
         [Test]
-        public void 立绘_没勾等待动画就立刻继续()
-        {
-            m_S.Actors.AutoFinishVisibility = false;
-
-            var awaiter = Run(new ActorShowActionHandler(), Show(EActorShowKind.FadeIn, wait: false));
-
-            // 动画还挂着，但 Handler 已经返回了 —— 这条动画归 IActorStage 收着
-            Assert.IsTrue(awaiter.IsCompleted);
-            Assert.IsTrue(m_S.Actors.VisibilityLatch.IsWaiting);
-
-            m_S.Actors.VisibilityLatch.Open();   // 收尾，别留悬空的 tcs
-        }
-
-        [Test]
         public void 立绘_非淡入淡出不吃时长()
         {
-            RunToEnd(new ActorShowActionHandler(), Show(EActorShowKind.Show, true));
+            RunToEnd(new ActorShowActionHandler(), Show(EActorShowKind.Show));
             Assert.AreEqual(0f, m_S.Actors.LastDuration);
             Assert.AreEqual(true, m_S.Actors.LastVisible);
         }
@@ -269,7 +271,7 @@ namespace Drama.Runtime.Tests
         public void 立绘_Skip模式下淡入变成瞬间()
         {
             m_S.Mode = EDramaPlaybackMode.Skip;
-            RunToEnd(new ActorShowActionHandler(), Show(EActorShowKind.FadeIn, true));
+            RunToEnd(new ActorShowActionHandler(), Show(EActorShowKind.FadeIn));
             Assert.AreEqual(0f, m_S.Actors.LastDuration);
         }
 
@@ -277,7 +279,7 @@ namespace Drama.Runtime.Tests
         public void 立绘_快进模式下淡入按倍率缩短()
         {
             m_S.Mode = EDramaPlaybackMode.FastForward;
-            RunToEnd(new ActorShowActionHandler(), Show(EActorShowKind.FadeIn, true));
+            RunToEnd(new ActorShowActionHandler(), Show(EActorShowKind.FadeIn));
             Assert.AreEqual(0.25f, m_S.Actors.LastDuration, 1e-5f);
         }
 

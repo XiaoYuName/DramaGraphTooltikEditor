@@ -140,6 +140,14 @@ namespace Drama.Runtime.Tests
 
         public IActorView Find(int actorId) => Get(actorId);
 
+        /// <summary>ActorId → 最后一次设过的方向。用来断言 Handler 有没有把方向传下来。</summary>
+        public readonly Dictionary<int, EActorShowDirection> Directions = new Dictionary<int, EActorShowDirection>();
+
+        public void SetDirection(IActorView actor, EActorShowDirection direction)
+        {
+            if (actor != null) Directions[actor.ActorId] = direction;
+        }
+
         public UniTask SetVisibleAsync(IActorView actor, bool visible, float duration, Ease ease, CancellationToken ct)
         {
             LastVisible = visible;

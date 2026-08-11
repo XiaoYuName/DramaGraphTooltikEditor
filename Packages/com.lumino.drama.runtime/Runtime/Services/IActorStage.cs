@@ -49,11 +49,27 @@ namespace Drama.Runtime.Services
         IActorView Find(int actorId);
 
         /// <summary>
+        /// 把立绘放到指定方向的位置上（左 / 中 / 右）。
+        ///
+        /// <b>"挂在哪"是舞台的事，不是立绘自己的事</b>，所以这个方法在 IActorStage 上
+        /// 而不是 IActorView 上 —— 三个方向具体对应什么坐标 / 挂在哪个锚点下，
+        /// 只有摆布局的舞台知道。
+        ///
+        /// <see cref="ActorShowAction.Position"/> 是<b>在此基础上的偏移</b>：
+        /// Handler 会先调本方法定方向，再写 Root.localPosition。
+        /// 所以实现里改的应当是<b>父节点</b>（或锚点），别去写 localPosition，
+        /// 不然紧接着就被 Position 覆盖掉了。
+        /// </summary>
+        void SetDirection(IActorView actor, EActorShowDirection direction);
+
+        /// <summary>
         /// 显隐。<paramref name="duration"/> 为 0 就是瞬间切换。
         ///
-        /// 实现里产生的 Tween <b>必须登记到舞台自己名下</b>，
-        /// 这样 <see cref="CompleteAllTweens"/> 才收得住 —— 见
-        /// <see cref="ActorShowAction.WaitForCompletion"/> 为 false 的情况。
+        /// 实现里产生的 Tween <b>必须登记到舞台自己名下</b>，这样
+        /// <see cref="CompleteAllTweens"/> 才收得住。本方法自己是会被 await 的，
+        /// 但同一个立绘身上还有别的"发起了不等它"的动画（<see cref="ActorOffsetMoveAction"/>
+        /// 的 LoopCount 为负数时、循环的 Spine 动画），以及 Skip 时被中途取消的动画 ——
+        /// 这些都要靠登记 + CompleteAllTweens 收口，否则会漏到下一段剧情里。
         /// </summary>
         UniTask SetVisibleAsync(IActorView actor, bool visible, float duration, Ease ease, CancellationToken ct);
 

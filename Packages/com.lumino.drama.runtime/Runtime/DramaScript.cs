@@ -317,7 +317,9 @@ namespace Drama.Runtime
         [LabelText("缩放"), Tooltip("1 = 原始大小")] public Vector2 Scale = Vector2.one;
         [LabelText("时长(秒)")] public float DurationSeconds;
         [LabelText("缓动")]     public Ease Ease = Ease.Linear;
-        [LabelText("等待动画结束"), Tooltip("不勾则发起动画后立刻继续下一条")] public bool WaitForCompletion = true;
+        // 0.2.1 起没有"等待动画结束"这个字段了：
+        // 「不等动画」和「把下一条连成并行分支」是同一件事，图的拓扑（Next.Length > 1）
+        // 已经能表达，再来个 bool 只会和拓扑打架。本指令一律等动画跑完。
 
         public override string Summary => $"立绘{ShowKind} · 角色{ActorId}";
     }

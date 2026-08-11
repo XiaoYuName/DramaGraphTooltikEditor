@@ -9,10 +9,9 @@ namespace Drama.Runtime.Handlers
     /// <summary>
     /// 立绘出现 / 消失。
     ///
-    /// <b>唯一需要留神的是 <see cref="ActorShowAction.WaitForCompletion"/> == false：</b>
-    /// Handler 立刻返回了，但动画还在跑。这条动画归 IActorStage 收着，
-    /// 剧本结束 / 跳转时由 Director 调 CompleteAllTweens() 收口，
-    /// 否则会漏到下一段剧情里去。
+    /// <b>一律等动画跑完才返回。</b> 想让动画和后面的指令并行，在图里把它们连成
+    /// 并行分支（<c>Next.Length &gt; 1</c>）—— 那是同一件事的正确表达方式，
+    /// 不需要指令自己带一个"不等"的开关。
     /// </summary>
     public sealed class ActorShowActionHandler : DramaSimpleActionHandler<ActorShowAction>
     {
@@ -22,6 +21,11 @@ namespace Drama.Runtime.Handlers
             if (actor == null) return;
 
             // 布局先摆好再放动画，不然淡入过程中会看到位置跳变。
+            //
+            // 顺序不能反：先定方向（换锚点 / 父节点），再写 Position。
+            // Position 是在方向基础上的偏移，反过来就被方向覆盖掉了。
+            ctx.Actors.SetDirection(actor, a.Direction);
+
             // Scale 是倍率不是百分比，和 ActorScaleAction 一个口径，别在这儿再乘 0.01
             actor.Root.localPosition = a.Position;
             actor.Root.localScale = new Vector3(a.Scale.x, a.Scale.y, 1f);
@@ -30,10 +34,7 @@ namespace Drama.Runtime.Handlers
             var animated = a.ShowKind == EActorShowKind.FadeIn || a.ShowKind == EActorShowKind.FadeOut;
             var duration = animated ? DramaWait.Scale(a.DurationSeconds, ctx.Mode) : 0f;
 
-            var anim = ctx.Actors.SetVisibleAsync(actor, visible, duration, a.Ease, ct);
-
-            if (a.WaitForCompletion) await anim;
-            else anim.SuppressCancellationThrow().Forget();
+            await ctx.Actors.SetVisibleAsync(actor, visible, duration, a.Ease, ct);
         }
     }
 
