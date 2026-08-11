@@ -1,4 +1,3 @@
-using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 
@@ -29,14 +28,35 @@ namespace Drama.Runtime.Flow
 
         public static float Scale(float seconds, IDramaContext ctx) => Scale(seconds, ctx.Mode);
 
-        /// <summary>等一段时间。Skip 模式下立刻返回。</summary>
-        public static UniTask Seconds(float seconds, IDramaContext ctx, CancellationToken ct)
+        /// <summary>
+        /// 等一段时间。Skip 模式下立刻返回。
+        ///
+        /// <b>逐帧按当前模式扣剩余时间，而不是进来时一次性算好总时长。</b>
+        /// 后者的话，玩家在一条 3 秒的等待中途点跳过是没有反应的 ——
+        /// <c>UniTask.Delay</c> 已经按老模式定好了闹钟，模式再变也叫不醒它，
+        /// 表现出来就是"点了跳过还得干等这 3 秒走完"。
+        /// </summary>
+        public static async UniTask Seconds(float seconds, IDramaContext ctx, CancellationToken ct)
         {
-            var actual = Scale(seconds, ctx.Mode);
-            if (actual <= 0f) return UniTask.CompletedTask;
+            if (seconds <= 0f) return;
 
-            return UniTask.Delay(TimeSpan.FromSeconds(actual),
-                                 DelayType.DeltaTime, PlayerLoopTiming.Update, ct);
+            var remaining = seconds;
+
+            while (true)
+            {
+                // 跳过：不管还剩多少，立刻结束
+                if (ctx.Mode == EDramaPlaybackMode.Skip) return;
+
+                await UniTask.Yield(PlayerLoopTiming.Update, ct);
+
+                // 快进是把时长压缩，等价于让时间流得更快
+                var rate = ctx.Mode == EDramaPlaybackMode.FastForward && FastForwardScale > 0f
+                    ? 1f / FastForwardScale
+                    : 1f;
+
+                remaining -= UnityEngine.Time.deltaTime * rate;
+                if (remaining <= 0f) return;
+            }
         }
     }
 }
