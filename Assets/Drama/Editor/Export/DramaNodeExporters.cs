@@ -175,10 +175,25 @@ namespace Drama.Editor.Export
         // ==========================================================  立绘
 
         static int ActorId(INode n, DramaExportContext ctx) =>
-            (int)ctx.Port(n, ActorDramaNode.ActorIDName, -1L);
+            CheckActorId((int)ctx.Port(n, ActorDramaNode.ActorIDName, -1L), n, ctx);
 
         static int ActorIdOfContext(INode n, DramaExportContext ctx) =>
-            (int)ctx.Port(n, ActorContextNode.ActorIDName, -1L);
+            CheckActorId((int)ctx.Port(n, ActorContextNode.ActorIDName, -1L), n, ctx);
+
+        /// <summary>
+        /// 角色ID 没配 / 没连上的话在这里喊一声。
+        ///
+        /// 运行时对这种情况是<b>静默</b>的（<c>Find(-1)</c> 返回 null，指令直接跳过），
+        /// 现象是"立绘一动不动"，从表现上根本看不出是数据的问题——
+        /// 所以必须在导出这一步就拦下来。
+        /// </summary>
+        static int CheckActorId(int actorId, INode n, DramaExportContext ctx)
+        {
+            if (actorId <= 0)
+                ctx.Warn($"角色ID 是 {actorId}，这条指令运行时会被跳过（端口没填值，或者没从上游立绘节点连过来）", n);
+
+            return actorId;
+        }
 
         static void ExportActorShow(ActorShowNode n, DramaExportContext ctx)
         {
@@ -191,11 +206,12 @@ namespace Drama.Editor.Export
                 ShowKind          = MapShowKind(kind),
                 Direction         = MapShowDirection(ctx.Option(n, ActorShowNode.k_ShowDirection, EActorShowDirection.Left)),
                 Position          = ctx.Port(n, ActorShowNode.k_Pos, Vector2.zero),
-                ScalePercent      = ctx.Port(n, ActorShowNode.k_Scale, new Vector2(100f, 100f)),
+                // 倍率，不是百分比 —— 和「立绘缩放」节点保持同一个口径
+                Scale             = ctx.Port(n, ActorShowNode.k_Scale, Vector2.one),
                 // 时长端口只在带动画时存在；编辑器里是毫秒
                 DurationSeconds   = animated ? ctx.Port(n, ActorShowNode.k_Duration, 600f) / 1000f : 0f,
                 Ease            = ctx.Option(n, ActorShowNode.k_Ease, DG.Tweening.Ease.Linear),
-                WaitForCompletion = ctx.Option(n, ActorShowNode.k_Wait, true),
+                // 没有"等不等动画"这个开关：想让动画和后面并行，图里连成并行分支即可
             });
         }
 
@@ -333,14 +349,25 @@ namespace Drama.Editor.Export
             });
         }
 
-        static void ExportActorHighlight(ActorSetGraySwitchNode n, DramaExportContext ctx) =>
+        /// <summary>
+        /// 讲话人突出的总开关，不针对角色，所以没有 ActorId。
+        ///
+        /// 两个开关是 Option，两个强度是<b>动态端口</b>（开关没勾时端口不存在），
+        /// 所以强度得走 ctx.Port 的 fallback，取不到就用旧工程写死的那个值。
+        /// </summary>
+        static void ExportActorHighlight(ActorSetGraySwitchNode n, DramaExportContext ctx)
+        {
+            var dim = ctx.Option(n, ActorSetGraySwitchNode.IsFade, false);
+            var shrink = ctx.Option(n, ActorSetGraySwitchNode.IsGray, true);
+
             ctx.Emit(new ActorHighlightAction
             {
-                ActorId = ActorId(n, ctx),
-                // 端口名和显示名对不上：IsFade 显示的是「置灰」，IsGray 显示的是「微缩」
-                Gray   = ctx.Port(n, ActorSetGraySwitchNode.IsFade, false),
-                Shrink = ctx.Port(n, ActorSetGraySwitchNode.IsGray, true),
+                Gray           = dim,
+                DimBrightness  = dim ? ctx.Port(n, ActorSetGraySwitchNode.DimBrightness, 0.8f) : 1f,
+                Shrink         = shrink,
+                ShrinkScale    = shrink ? ctx.Port(n, ActorSetGraySwitchNode.ShrinkScale, 0.95f) : 1f,
             });
+        }
 
         static void ExportActorOffsetMove(ActorOffsetMoveNode n, DramaExportContext ctx)
         {

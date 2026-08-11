@@ -104,9 +104,19 @@ namespace Drama.Editor.Export
         /// 取端口的值。
         /// 未连线 → 端口内嵌编辑框里的值；已连线 → 去上游节点求值。
         /// </summary>
-        internal T Eval<T>(IPort port, T fallback = default)
+        internal T Eval<T>(IPort port, T fallback = default) => Eval(port, fallback, 0);
+
+        T Eval<T>(IPort port, T fallback, int depth)
         {
             if (port == null) return fallback;
+
+            // 透传链理论上不会成环（连线方向是单向的），但图是人连的，
+            // 真绕出一个环这里会无限递归把编辑器拖死，加一道闸
+            if (depth > 32)
+            {
+                Error("端口求值层数过深，检查「角色ID」这类连线是不是绕成环了");
+                return fallback;
+            }
 
             if (!port.IsConnected)
                 return port.TryGetValue<T>(out var inline) ? inline : fallback;
@@ -114,17 +124,48 @@ namespace Drama.Editor.Export
             var src = port.FirstConnectedPort;
             if (src == null) return fallback;
 
-            switch (src.GetNode())
+            var srcNode = src.GetNode();
+
+            switch (srcNode)
             {
                 case IConstantNode c:
                     return c.TryGetValue<T>(out var cv) ? cv : fallback;
 
                 case IVariableNode vn:
                     return vn.Variable != null && vn.Variable.TryGetDefaultValue<T>(out var vv) ? vv : fallback;
-
-                default:
-                    return TryEvalCustom(src, out T custom) ? custom : fallback;
             }
+
+            // 值透传口。本工程的节点大量用「同名的一对输入/输出端口」表示
+            // "这个值从我这儿原样往下传"（ActorDramaNode / ActorContextNode 的角色ID、
+            // ActorShowNode 的位置和缩放、ShakeNode / VibrateNode / TalkNode 的各种参数……）。
+            // 不认这一手的话，凡是靠连线取值的下游节点全部拿到 fallback ——
+            // 角色ID 就变成 -1，运行时 Find(-1) 找不到人，指令静默空转，
+            // 现象是"立绘一动不动"，从表现上完全看不出是数据的问题。
+            if (TryGetPassthroughInput(src, out var upstream))
+                return Eval(upstream, fallback, depth + 1);
+
+            return TryEvalCustom(src, out T custom) ? custom : fallback;
+        }
+
+        /// <summary>
+        /// <paramref name="srcPort"/> 是输出口，且同一节点上有个<b>同名同类型</b>的输入口时，
+        /// 给出那个输入口 —— 这就是本工程约定的"值透传"。
+        ///
+        /// 端口名在同一节点的输入侧和输出侧是两套命名空间，允许重名，
+        /// 这个写法本身就是为了表达透传。要求类型也一致是为了别误伤
+        /// 流程口（<c>DramaNode</c> 的进出口也是同名的，但那是 Untyped 的执行流）。
+        /// </summary>
+        static bool TryGetPassthroughInput(IPort srcPort, out IPort input)
+        {
+            input = null;
+
+            if (srcPort.Direction != PortDirection.Output) return false;
+
+            var candidate = srcPort.GetNode()?.GetInputPortByName(srcPort.Name);
+            if (candidate == null || candidate.DataType != srcPort.DataType) return false;
+
+            input = candidate;
+            return true;
         }
 
         /// <summary>本工程自定义的"值提供者"节点。</summary>

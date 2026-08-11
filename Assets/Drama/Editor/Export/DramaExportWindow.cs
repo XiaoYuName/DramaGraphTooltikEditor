@@ -38,6 +38,27 @@ namespace Drama.Editor.Export
         [LabelText("导出后在 Project 里选中产物")]
         public bool PingAfterExport = true;
 
+        // ==================================================== 宿主工程
+
+        [Title("同步到宿主工程", TitleAlignment = TitleAlignments.Left)]
+        [ShowInInspector]
+        [FolderPath(AbsolutePath = true, RequireExistingPath = false)]
+        [LabelText("宿主工程目录")]
+        [InfoBox("填了就在导出之后额外往这里拷一份，留空则不同步。\n" +
+                 "填的是<b>目标文件夹</b>的绝对路径，要在宿主工程的 Assets 下面，" +
+                 "例如 D:/YourGame/Assets/AddressableAssets/Remote/Configs/Drama。",
+                 InfoMessageType.Info)]
+        [PropertyTooltip("记在 EditorPrefs 里，换一次就一直用这个")]
+        public string HostFolder
+        {
+            get => EditorPrefs.GetString(HostFolderPrefKey, string.Empty);
+            set => EditorPrefs.SetString(HostFolderPrefKey, value ?? string.Empty);
+        }
+
+        /// <summary>按工程区分：同一台机器上可能开着好几个编辑器工程，各自的宿主不一样。</summary>
+        static string HostFolderPrefKey =>
+            "Drama.Export.HostFolder." + Application.dataPath.GetHashCode();
+
         // ==================================================== 剧本列表
 
         [Title("剧本")]
@@ -158,6 +179,9 @@ namespace Drama.Editor.Export
                                       (r.ParallelForkCount > 0 ? $"，{r.ParallelForkCount} 处并行" : "") +
                                       (r.JoinCount > 0 ? $"，{r.JoinCount} 处汇合" : "") +
                                       (string.IsNullOrEmpty(r.OutputPath) ? "" : $"   → {r.OutputPath}"));
+
+                        if (writeAsset && !string.IsNullOrEmpty(r.OutputPath) && !string.IsNullOrEmpty(HostFolder))
+                            sb.AppendLine("       " + SyncToHost(r.OutputPath));
                     }
                     else
                     {
@@ -188,6 +212,49 @@ namespace Drama.Editor.Export
             {
                 var obj = AssetDatabase.LoadMainAssetAtPath(lastAsset);
                 if (obj != null) EditorGUIUtility.PingObject(obj);
+            }
+        }
+
+        /// <summary>
+        /// 把刚导出的产物再拷一份到宿主工程，返回一行给日志用的说明。
+        ///
+        /// <b>只能走文件拷贝</b>：宿主目录在本工程之外，AssetDatabase 够不着。
+        ///
+        /// <b>.meta 只在目标那边还没有的时候才拷。</b> GUID 一变，宿主的 Addressables
+        /// 条目和所有引用这份资产的地方就全断了；目标已经有 .meta 就说明宿主认过这个资产，
+        /// 保持它原来的 GUID 才是对的。第一次同步没有 .meta，这时候把本工程的带过去，
+        /// 两边 GUID 一致（就是输出目录那条提示说的事）。
+        /// </summary>
+        string SyncToHost(string assetPath)
+        {
+            var folder = HostFolder;
+
+            try
+            {
+                // 拷到自己工程里没有意义，还会多出一份重复资产
+                var projectRoot = System.IO.Path.GetFullPath(
+                    System.IO.Path.Combine(Application.dataPath, ".."));
+                if (System.IO.Path.GetFullPath(folder).StartsWith(projectRoot, StringComparison.OrdinalIgnoreCase))
+                    return "⚠ 宿主目录指向的是本工程，已跳过同步";
+
+                System.IO.Directory.CreateDirectory(folder);
+
+                var fileName = System.IO.Path.GetFileName(assetPath);
+                var target = System.IO.Path.Combine(folder, fileName);
+
+                System.IO.File.Copy(assetPath, target, overwrite: true);
+
+                var meta = assetPath + ".meta";
+                var targetMeta = target + ".meta";
+                if (System.IO.File.Exists(meta) && !System.IO.File.Exists(targetMeta))
+                    System.IO.File.Copy(meta, targetMeta);
+
+                return $"↳ 已同步到宿主：{target}";
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                return $"⚠ 同步到宿主失败：{e.Message}";
             }
         }
 

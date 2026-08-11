@@ -6,16 +6,7 @@ using UnityEngine;
 namespace Drama.Editor
 {
     /// <summary>
-    /// 立绘显示 / 隐藏。对应原系统 opcode 2 = ActorShow（实测用量 1032 次，第三高频）。
-    ///
-    /// 字段映射（参数编号沿用原系统，便于对照文档）：
-    ///   p0 charId     = 角色ID，直接存直接导出
-    ///   p1 showKind   = 显示方式
-    ///   p2 x   p3 y   = 位置
-    ///   p4 sx  p5 sy  = 缩放百分比（100 = 原始大小）
-    ///   p6 reserved   = 语义未确认，原始数据里出现过 1 和 6
-    ///   p7 durationMs = 动画时长
-    ///   p8 wait       = 是否阻塞（等动画播完才推进）
+    /// 立绘显示 / 隐藏
     /// </summary>
     [Node("命令/立绘", "Assets/Drama/Assets/Start.png", "立绘出现")]
     [Serializable]
@@ -25,8 +16,6 @@ namespace Drama.Editor
         internal const string k_CharId   = "CharId";
         internal const string k_ShowKind = "ShowKind";
         internal const string k_ShowDirection = "ShowDirection";
-        internal const string k_Reserved = "Reserved";
-        internal const string k_Wait     = "Wait";
         internal const string k_Ease = "Ease";
 
         // ---- Port 名 ----
@@ -52,8 +41,8 @@ namespace Drama.Editor
 
             context.AddInputPort<Vector2>(k_Scale)
                 .WithDisplayName("缩放")
-                .WithDefaultValue(new Vector2(100, 100))
-                .WithTooltip("大小比例")
+                .WithDefaultValue(Vector2.one)
+                .WithTooltip("倍率，1 = 原始大小。和「立绘缩放」节点同一个口径")
                 .Build();
 
             context.AddOutputPort<Vector2>(k_Scale)
@@ -98,12 +87,6 @@ namespace Drama.Editor
                 .WithDisplayName("显示方式")
                 .WithDefaultValue(EActorShowKind.FadeIn)
                 .WithTooltip("FadeIn / FadeOut 带动画，会多出「时长(ms)」端口")
-                .Build();
-
-            context.AddOption<bool>(k_Wait)
-                .WithDisplayName("等待动画结束")
-                .WithDefaultValue(true)
-                .WithTooltip("勾选则阻塞剧情推进，等动画播完再继续（p8）")
                 .Build();
 
             context.AddOption<Ease>(k_Ease)

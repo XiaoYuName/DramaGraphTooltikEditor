@@ -127,6 +127,12 @@ namespace Drama.Editor.Export
             EnsureFolder(outputFolder);
             var outPath = $"{outputFolder.TrimEnd('/')}/{Path.GetFileNameWithoutExtension(graphPath)}.asset";
 
+            // 主资产的对象名必须和文件名一致，否则 Inspector 每次都弹
+            // "The main object name '' should match the asset filename"。
+            // CreateInstance 出来的名字是空串，而下面覆盖分支的 CopySerialized
+            // 连 m_Name 一起拷 —— 所以哪怕手动 Fix 过一次，下次导出又被空名字盖回去。
+            script.name = Path.GetFileNameWithoutExtension(outPath);
+
             var existing = AssetDatabase.LoadAssetAtPath<DramaScript>(outPath);
             if (existing != null)
             {

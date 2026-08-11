@@ -20,8 +20,9 @@ namespace Drama.Editor
             base.OnDefinePorts(context);
 
             context.AddInputPort<Vector3>(ActorScaleName)
-                .WithDefaultValue(Vector3.zero)
+                .WithDefaultValue(Vector3.one)
                 .WithDisplayName("缩放")
+                .WithTooltip("倍率，1 = 原始大小。默认 one 而不是 zero —— 漏填会缩成看不见")
                 .Build();
 
             context.AddInputPort<float>(Duration)
