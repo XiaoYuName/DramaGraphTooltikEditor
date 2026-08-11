@@ -90,7 +90,7 @@ namespace Drama.Runtime.Flow
                     case ActorVibrateAction a:       actors.Add(a.ActorId); break;
                     case ActorSetSkinAction a:       actors.Add(a.ActorId); break;
                     case ActorPlayAnimationAction a: actors.Add(a.ActorId); break;
-                    case ActorHighlightAction a:     actors.Add(a.ActorId); break;
+                    // ActorHighlightAction 是全局开关，不针对角色，没有可收的 ID
                 }
             }
 

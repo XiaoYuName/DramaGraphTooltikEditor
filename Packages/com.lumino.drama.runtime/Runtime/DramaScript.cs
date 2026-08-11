@@ -431,15 +431,34 @@ namespace Drama.Runtime
                 : $"动画 · 角色{ActorId} · {AnimationName} · 轨道{TrackIndex}";
     }
 
-    /// <summary>非说话者置灰 / 微缩，突出当前说话人。</summary>
+    /// <summary>
+    /// 「非说话人压暗 / 微缩」这套效果的总开关。
+    ///
+    /// <b>不针对任何角色，是全局设置。</b> 本指令只负责开关，
+    /// 真正的应用发生在每条 <see cref="TalkAction"/> 上 —— 舞台按当前说话人，
+    /// 把说话人恢复原样、其他人压暗微缩（见 <see cref="Services.IActorStage.SetSpeaker"/>）。
+    ///
+    /// 所以剧本里一般在开头设一次就够，中途想临时关掉某种效果再设一次。
+    /// </summary>
     [Serializable]
     public sealed class ActorHighlightAction : DramaAction
     {
         public override string Kind => "讲话人突出";
-        [LabelText("角色ID")] public int ActorId;
-        [LabelText("置灰")]   public bool Gray;
-        [LabelText("微缩")]   public bool Shrink;
-        public override string Summary => $"讲话人突出 · 角色{ActorId}";
+
+        [LabelText("压暗非说话人")] public bool Gray;
+
+        /// <summary>压暗到多少亮度，1 = 不压暗。旧工程写死 0.8。</summary>
+        [LabelText("压暗亮度"), Tooltip("1 = 原始亮度，越小越暗")]
+        public float DimBrightness = 0.8f;
+
+        [LabelText("微缩非说话人")] public bool Shrink;
+
+        /// <summary>非说话人缩到多少倍，1 = 不缩。旧工程写死 0.95。</summary>
+        [LabelText("微缩倍率"), Tooltip("1 = 原始大小")]
+        public float ShrinkScale = 0.95f;
+
+        public override string Summary =>
+            $"讲话人突出 · 压暗{(Gray ? $"{DimBrightness:0.##}" : "关")} 微缩{(Shrink ? $"{ShrinkScale:0.##}" : "关")}";
     }
 
     #endregion

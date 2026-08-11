@@ -21,11 +21,17 @@ namespace Drama.Runtime.Services
 
         void SetAlpha(float alpha);
 
-        /// <summary>非说话人置灰。<see cref="ActorHighlightAction"/> 用。</summary>
-        void SetGray(bool gray);
+        /// <summary>
+        /// 压暗到指定亮度，<b>1 = 原始亮度</b>。<see cref="ActorHighlightAction"/> 用。
+        ///
+        /// 收的是数值而不是 bool：具体压到多少由剧本配，"开关 + 数值"的判断在舞台那边做完了
+        /// （见 <see cref="IActorStage.SetHighlightMode"/>），立绘只管照数值执行。
+        /// 不要动 alpha —— 那是显隐动画的地盘。
+        /// </summary>
+        void SetDim(float brightness);
 
-        /// <summary>非说话人微缩。<see cref="ActorHighlightAction"/> 用。</summary>
-        void SetShrink(bool shrink);
+        /// <summary>缩到指定倍率，<b>1 = 原始大小</b>。<see cref="ActorHighlightAction"/> 用。</summary>
+        void SetShrink(float scale);
 
         /// <summary>换皮肤。<see cref="ActorSetSkinAction"/> 用。</summary>
         void SetSkin(string skinName);
@@ -34,6 +40,38 @@ namespace Drama.Runtime.Services
         /// 播动画。<paramref name="loop"/> 为 true 时应当立刻返回（不然永远等不到结束）。
         /// </summary>
         UniTask PlayAnimationAsync(string animationName, int track, bool loop, float timeScale, CancellationToken ct);
+    }
+
+    /// <summary>
+    /// 「非说话人压暗 / 微缩」的开关和强度。
+    ///
+    /// 做成结构体而不是四个参数：两个 bool 两个 float 摆一排，
+    /// 调用方把两个 float 传反了编译器不会拦你。
+    /// </summary>
+    public readonly struct ActorHighlightSettings
+    {
+        /// <summary>要不要压暗非说话人。</summary>
+        public readonly bool Dim;
+
+        /// <summary>压暗到多少亮度，1 = 原始亮度。</summary>
+        public readonly float DimBrightness;
+
+        /// <summary>要不要微缩非说话人。</summary>
+        public readonly bool Shrink;
+
+        /// <summary>缩到多少倍，1 = 原始大小。</summary>
+        public readonly float ShrinkScale;
+
+        public ActorHighlightSettings(bool dim, float dimBrightness, bool shrink, float shrinkScale)
+        {
+            Dim = dim;
+            DimBrightness = dimBrightness;
+            Shrink = shrink;
+            ShrinkScale = shrinkScale;
+        }
+
+        /// <summary>旧工程的默认手感：压暗关、微缩开 0.95。</summary>
+        public static ActorHighlightSettings Default => new ActorHighlightSettings(false, 0.8f, true, 0.95f);
     }
 
     /// <summary>
@@ -61,6 +99,25 @@ namespace Drama.Runtime.Services
         /// 不然紧接着就被 Position 覆盖掉了。
         /// </summary>
         void SetDirection(IActorView actor, EActorShowDirection direction);
+
+        /// <summary>
+        /// 「非说话人压暗 / 微缩」这套效果的开关 + 强度。<see cref="ActorHighlightAction"/> 用。
+        ///
+        /// 实现里要<b>立刻按当前说话人重刷一遍</b>，不能等下一句台词 ——
+        /// 剧本中途关掉效果时，已经压暗的立绘得马上恢复，否则会一直暗着。
+        /// </summary>
+        void SetHighlightMode(ActorHighlightSettings settings);
+
+        /// <summary>
+        /// 告诉舞台"现在是谁在说话"，舞台据此把说话人恢复原样、其他人压暗 / 微缩。
+        /// <paramref name="actorId"/> 小于等于 0 表示没有具体说话人（旁白 / 主角 / 自定义名），
+        /// 这种情况下所有立绘都恢复原样。
+        ///
+        /// <b>由 <see cref="TalkAction"/> 的 Handler 每句调一次</b>，不是剧本里的显式指令 ——
+        /// 策划只管在图里配"这句谁说的"，突出效果自动跟着走。
+        /// 开关关掉时本方法应当什么都不做（或把所有人恢复原样）。
+        /// </summary>
+        void SetSpeaker(int actorId);
 
         /// <summary>
         /// 显隐。<paramref name="duration"/> 为 0 就是瞬间切换。

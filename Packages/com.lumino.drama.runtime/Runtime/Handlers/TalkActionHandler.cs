@@ -28,6 +28,11 @@ namespace Drama.Runtime.Handlers
                 VoiceRef       = a.Voice,
             };
 
+            // 讲话人突出：说话人恢复原样、其他人压暗/微缩。
+            // 效果开关归 ActorHighlightAction，这里只报"现在谁在说"。
+            // 只有「指定角色」才有立绘上的说话人，旁白/主角/自定义名一律当没有。
+            ctx.Actors?.SetSpeaker(a.Speaker == ESpeakerKind.Actor ? a.ActorId : -1);
+
             if (!a.Voice.IsEmpty && ctx.Mode != EDramaPlaybackMode.Skip)
                 ctx.Audio.PlayVoice(a.Voice);
 

@@ -53,8 +53,10 @@ namespace Drama.Runtime.Tests
         {
             var keys = DramaAssetKeys.Collect(Make(
                 new ActorShowAction { ActorId = 10000 },
-                new ActorHighlightAction { ActorId = 10001 },
                 new ActorMoveAction { ActorId = 10000 },
+                new ActorSetSkinAction { ActorId = 10001 },
+                // ActorHighlightAction 是全局开关，没有 ActorId，不该被收进来
+                new ActorHighlightAction { Gray = true },
                 new ChangeBackgroundAction { BackgroundId = 500 },
                 // BGM 不该被收进来 —— MusicId 是音频配置表 ID，不是要预载的资源
                 new PlayMusicAction { MusicId = "bgm_01" }));

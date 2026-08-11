@@ -209,6 +209,52 @@ namespace Drama.Runtime.Tests
             Assert.AreEqual(1, m_S.Dialogue.Shown.Count, "台词应当立刻显示，不等语音");
         }
 
+        // ============================================================ ActorHighlightAction
+
+        [Test]
+        public void 讲话人突出_只是全局开关不碰具体立绘()
+        {
+            RunToEnd(new ActorHighlightActionHandler(),
+                     new ActorHighlightAction
+                     {
+                         Gray = true, DimBrightness = 0.5f,
+                         Shrink = false, ShrinkScale = 0.9f,
+                     });
+
+            Assert.IsTrue(m_S.Actors.Highlight.Dim);
+            Assert.AreEqual(0.5f, m_S.Actors.Highlight.DimBrightness);
+            Assert.IsFalse(m_S.Actors.Highlight.Shrink);
+            Assert.AreEqual(0.9f, m_S.Actors.Highlight.ShrinkScale);
+
+            // 这条指令不该去动任何一个立绘，也不该报说话人
+            Assert.AreEqual(0, m_S.Actors.SetSpeakerCalls);
+        }
+
+        [Test]
+        public void 讲话人突出_说话人由台词逐句报给舞台()
+        {
+            var a = Line();
+            a.Speaker = ESpeakerKind.Actor;
+            a.ActorId = 42;
+
+            var awaiter = Run(new TalkActionHandler(), a);
+            m_S.Dialogue.AdvanceLatch.Open();
+            awaiter.GetResult();
+
+            Assert.AreEqual(42, m_S.Actors.LastSpeaker);
+        }
+
+        [Test]
+        public void 讲话人突出_旁白没有说话人()
+        {
+            // 旁白 / 主角 / 自定义名都没有立绘上的说话人，要报 -1 让所有立绘恢复原样
+            var awaiter = Run(new TalkActionHandler(), Line());   // Line() 默认是 Aside
+            m_S.Dialogue.AdvanceLatch.Open();
+            awaiter.GetResult();
+
+            Assert.AreEqual(-1, m_S.Actors.LastSpeaker);
+        }
+
         // ============================================================ ActorShowAction
 
         ActorShowAction Show(EActorShowKind kind) => new ActorShowAction
@@ -306,18 +352,6 @@ namespace Drama.Runtime.Tests
                      new ActorPlayAnimationAction { ActorId = 100, AnimationName = "idle", TrackIndex = 2 });
 
             CollectionAssert.AreEqual(new[] { "idle" }, m_S.Actors.Get(100).PlayedAnimations);
-        }
-
-        [Test]
-        public void 讲话人突出_置灰和微缩都传下去()
-        {
-            m_S.Actors.AcquireAsync(100, default).GetAwaiter().GetResult();
-
-            RunToEnd(new ActorHighlightActionHandler(),
-                     new ActorHighlightAction { ActorId = 100, Gray = true, Shrink = false });
-
-            Assert.IsTrue(m_S.Actors.Get(100).Gray);
-            Assert.IsFalse(m_S.Actors.Get(100).Shrink);
         }
 
         [Test]

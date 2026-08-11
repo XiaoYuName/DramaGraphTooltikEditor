@@ -91,16 +91,17 @@ namespace Drama.Runtime.Tests
         public Transform Root { get; }
 
         public float Alpha = 1f;
-        public bool Gray;
-        public bool Shrink;
+        /// <summary>当前亮度 / 缩放倍率，1 = 原样。</summary>
+        public float Brightness = 1f;
+        public float ShrinkScale = 1f;
         public string Skin;
         public readonly List<string> PlayedAnimations = new List<string>();
         public readonly Latch AnimationLatch = new Latch();
         public bool AutoFinishAnimation = true;
 
         public void SetAlpha(float alpha) => Alpha = alpha;
-        public void SetGray(bool gray) => Gray = gray;
-        public void SetShrink(bool shrink) => Shrink = shrink;
+        public void SetDim(float brightness) => Brightness = brightness;
+        public void SetShrink(float scale) => ShrinkScale = scale;
         public void SetSkin(string skinName) => Skin = skinName;
 
         public UniTask PlayAnimationAsync(string animationName, int track, bool loop, float timeScale, CancellationToken ct)
@@ -146,6 +147,21 @@ namespace Drama.Runtime.Tests
         public void SetDirection(IActorView actor, EActorShowDirection direction)
         {
             if (actor != null) Directions[actor.ActorId] = direction;
+        }
+
+        public ActorHighlightSettings Highlight { get; private set; } = ActorHighlightSettings.Default;
+
+        /// <summary>最后一次报上来的说话人。-1 表示没有具体说话人。</summary>
+        public int LastSpeaker { get; private set; } = -1;
+
+        public int SetSpeakerCalls { get; private set; }
+
+        public void SetHighlightMode(ActorHighlightSettings settings) => Highlight = settings;
+
+        public void SetSpeaker(int actorId)
+        {
+            LastSpeaker = actorId;
+            SetSpeakerCalls++;
         }
 
         public UniTask SetVisibleAsync(IActorView actor, bool visible, float duration, Ease ease, CancellationToken ct)

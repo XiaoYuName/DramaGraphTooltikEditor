@@ -195,16 +195,19 @@ namespace Drama.Runtime.Handlers
         }
     }
 
-    /// <summary>讲话人突出：把非说话人置灰 / 微缩。</summary>
+    /// <summary>
+    /// 讲话人突出的<b>总开关</b>。
+    ///
+    /// 这条指令不碰任何具体立绘 —— 它只是开关，真正的应用在每条台词上
+    /// （<see cref="TalkActionHandler"/> 会调 <see cref="Services.IActorStage.SetSpeaker"/>）。
+    /// </summary>
     public sealed class ActorHighlightActionHandler : DramaSimpleActionHandler<ActorHighlightAction>
     {
         protected override UniTask RunAsync(ActorHighlightAction a, IDramaContext ctx, CancellationToken ct)
         {
-            var actor = ctx.Actors.Find(a.ActorId);
-            if (actor == null) return UniTask.CompletedTask;
+            ctx.Actors?.SetHighlightMode(
+                new Services.ActorHighlightSettings(a.Gray, a.DimBrightness, a.Shrink, a.ShrinkScale));
 
-            actor.SetGray(a.Gray);
-            actor.SetShrink(a.Shrink);
             return UniTask.CompletedTask;
         }
     }
