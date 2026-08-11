@@ -218,7 +218,7 @@ namespace Drama.Runtime.Tests
             DurationSeconds = 1f,
             WaitForCompletion = wait,
             Position = new Vector2(3f, 4f),
-            ScalePercent = new Vector2(50f, 50f),
+            Scale = new Vector2(0.5f, 0.5f),   // 倍率，不是百分比
         };
 
         [Test]

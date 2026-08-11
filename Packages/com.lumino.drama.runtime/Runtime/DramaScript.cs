@@ -305,7 +305,16 @@ namespace Drama.Runtime
         [LabelText("显示方式")] public EActorShowKind ShowKind;
         [LabelText("方向")]     public EActorShowDirection Direction;
         [LabelText("位置")]     public Vector2 Position;
-        [LabelText("缩放(%)"), Tooltip("100 = 原始大小")] public Vector2 ScalePercent = new Vector2(100f, 100f);
+        /// <summary>
+        /// 缩放倍率，1 = 原始大小。
+        ///
+        /// ⚠️ 0.1.10 之前这个字段叫 <c>ScalePercent</c>、单位是百分比（100 = 原始大小），
+        /// 和 <see cref="ActorScaleAction.Scale"/> 的倍率语义对不上，策划在两个节点里
+        /// 填同一个数会得到差 100 倍的结果。改名是为了让旧资产读不到这个字段、
+        /// 直接落到默认值 1（正常大小），而不是静默按 0.01 倍显示。
+        /// <b>改完要全量重新导出。</b>
+        /// </summary>
+        [LabelText("缩放"), Tooltip("1 = 原始大小")] public Vector2 Scale = Vector2.one;
         [LabelText("时长(秒)")] public float DurationSeconds;
         [LabelText("缓动")]     public Ease Ease = Ease.Linear;
         [LabelText("等待动画结束"), Tooltip("不勾则发起动画后立刻继续下一条")] public bool WaitForCompletion = true;
@@ -331,7 +340,8 @@ namespace Drama.Runtime
     {
         public override string Kind => "立绘缩放";
         [LabelText("角色ID")]   public int ActorId;
-        [LabelText("目标缩放")] public Vector3 Scale;
+        /// <summary>倍率，1 = 原始大小。默认给 one 而不是 zero —— 漏填会把立绘缩成看不见。</summary>
+        [LabelText("目标缩放")] public Vector3 Scale = Vector3.one;
         [LabelText("时长(秒)")] public float DurationSeconds;
         [LabelText("缓动")]     public Ease Ease = Ease.Linear;
         public override string Summary => $"立绘缩放 · 角色{ActorId} → {Scale}";

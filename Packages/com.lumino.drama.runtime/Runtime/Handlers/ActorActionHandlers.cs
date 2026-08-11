@@ -21,9 +21,10 @@ namespace Drama.Runtime.Handlers
             var actor = await ctx.Actors.AcquireAsync(a.ActorId, ct);
             if (actor == null) return;
 
-            // 布局先摆好再放动画，不然淡入过程中会看到位置跳变
+            // 布局先摆好再放动画，不然淡入过程中会看到位置跳变。
+            // Scale 是倍率不是百分比，和 ActorScaleAction 一个口径，别在这儿再乘 0.01
             actor.Root.localPosition = a.Position;
-            actor.Root.localScale = new Vector3(a.ScalePercent.x * 0.01f, a.ScalePercent.y * 0.01f, 1f);
+            actor.Root.localScale = new Vector3(a.Scale.x, a.Scale.y, 1f);
 
             var visible = a.ShowKind == EActorShowKind.Show || a.ShowKind == EActorShowKind.FadeIn;
             var animated = a.ShowKind == EActorShowKind.FadeIn || a.ShowKind == EActorShowKind.FadeOut;
