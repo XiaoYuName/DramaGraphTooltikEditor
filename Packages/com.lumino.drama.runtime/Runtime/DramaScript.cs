@@ -95,6 +95,19 @@ namespace Drama.Runtime
         [LabelText("中")] Center = 2,
     }
 
+    /// <summary>
+    /// 立绘用哪种资源。决定运行时实例化哪种立绘，以及去角色表的哪个字段取路径。
+    ///
+    /// <b>Spine 必须是 0</b>：这个字段是后加的，之前导出的资产里没有它，
+    /// 反序列化后会落到默认值 0 —— 那时候只有 Spine 一种，落到 Spine 才是对的。
+    /// </summary>
+    public enum EActorAssetKind
+    {
+        [LabelText("骨骼")]  Spine = 0,
+        [LabelText("图片")]  Texture = 1,
+        [LabelText("Live2D")] Live2D = 2,
+    }
+
     public enum EShakeAxis
     {
         [LabelText("位置 XY")] PositionXY = 0,
@@ -282,6 +295,60 @@ namespace Drama.Runtime
         }
     }
 
+    /// <summary>
+    /// 设置立绘 Animator 的参数。Live2D 的表情 / 动作走 Unity 状态机，靠这组指令驱动。
+    ///
+    /// 拆成四条而不是一条带类型字段的：Unity 的 <c>SetBool</c> / <c>SetInteger</c> /
+    /// <c>SetFloat</c> / <c>SetTrigger</c> 值类型各不相同，合成一条就得塞三个值字段
+    /// 外加一个"看哪个"的枚举，读的人和写的人都要多绕一层。
+    /// </summary>
+    [Serializable]
+    public sealed class ActorAnimBoolAction : DramaAction
+    {
+        public override string Kind => "立绘Animator Bool";
+        [LabelText("角色ID")] public int ActorId = -1;
+        [LabelText("参数名")] public string ParameterName;
+        [LabelText("值")]     public bool Value;
+        public override string Summary => $"Animator · {ParameterName} = {Value}";
+    }
+
+    /// <inheritdoc cref="ActorAnimBoolAction"/>
+    [Serializable]
+    public sealed class ActorAnimIntAction : DramaAction
+    {
+        public override string Kind => "立绘Animator Int";
+        [LabelText("角色ID")] public int ActorId = -1;
+        [LabelText("参数名")] public string ParameterName;
+        [LabelText("值")]     public int Value;
+        public override string Summary => $"Animator · {ParameterName} = {Value}";
+    }
+
+    /// <inheritdoc cref="ActorAnimBoolAction"/>
+    [Serializable]
+    public sealed class ActorAnimFloatAction : DramaAction
+    {
+        public override string Kind => "立绘Animator Float";
+        [LabelText("角色ID")] public int ActorId = -1;
+        [LabelText("参数名")] public string ParameterName;
+        [LabelText("值")]     public float Value;
+        public override string Summary => $"Animator · {ParameterName} = {Value}";
+    }
+
+    /// <inheritdoc cref="ActorAnimBoolAction"/>
+    [Serializable]
+    public sealed class ActorAnimTriggerAction : DramaAction
+    {
+        public override string Kind => "立绘Animator Trigger";
+        [LabelText("角色ID")] public int ActorId = -1;
+        [LabelText("参数名")] public string ParameterName;
+
+        /// <summary>true = ResetTrigger，撤掉一个还没被状态机消费掉的触发。</summary>
+        [LabelText("重置")] public bool Reset;
+
+        public override string Summary =>
+            Reset ? $"Animator · 重置 {ParameterName}" : $"Animator · 触发 {ParameterName}";
+    }
+
     /// <summary>领取任务。</summary>
     [Serializable]
     public sealed class ReceiveTaskAction : DramaAction
@@ -347,6 +414,14 @@ namespace Drama.Runtime
         public override string Kind => "立绘显隐";
 
         [LabelText("角色ID")]   public int ActorId;
+
+        /// <summary>
+        /// 用哪种立绘。图里是三个不同的节点（立绘骨骼 / 立绘图 / 立绘Live2D），
+        /// 到了数据这一层收敛成同一条指令 + 一个类型字段 —— 三种立绘除了资源类型，
+        /// 摆位和显隐参数完全一样，拆成三条指令会把 Handler 和舞台逻辑也复制三份。
+        /// </summary>
+        [LabelText("立绘类型")] public EActorAssetKind AssetKind;
+
         [LabelText("显示方式")] public EActorShowKind ShowKind;
         [LabelText("方向")]     public EActorShowDirection Direction;
         [LabelText("位置")]     public Vector2 Position;

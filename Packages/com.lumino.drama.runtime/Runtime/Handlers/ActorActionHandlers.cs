@@ -17,7 +17,7 @@ namespace Drama.Runtime.Handlers
     {
         protected override async UniTask RunAsync(ActorShowAction a, IDramaContext ctx, CancellationToken ct)
         {
-            var actor = await ctx.Actors.AcquireAsync(a.ActorId, ct);
+            var actor = await ctx.Actors.AcquireAsync(a.ActorId, a.AssetKind, ct);
             if (actor == null) return;
 
             // 布局先摆好再放动画，不然淡入过程中会看到位置跳变。
@@ -192,6 +192,51 @@ namespace Drama.Runtime.Handlers
             return DramaShake.SoftAsync(actor.Root, a.Axis, a.Amplitude, a.IntervalSeconds, a.SmoothSpeed,
                                         DramaWait.Scale(a.DurationSeconds, ctx.Mode),
                                         a.RestoreOnEnd, ct);
+        }
+    }
+
+    /// <summary>
+    /// 设置立绘 Animator 的参数（Bool / Int / Float / Trigger 四条）。
+    ///
+    /// 找不到立绘就静默跳过，和其它立绘指令一个口径 ——
+    /// 立绘还没出场就发参数是剧本的顺序问题，导出那边会拦角色ID，这里不重复报。
+    /// </summary>
+    public sealed class ActorAnimBoolActionHandler : DramaSimpleActionHandler<ActorAnimBoolAction>
+    {
+        protected override UniTask RunAsync(ActorAnimBoolAction a, IDramaContext ctx, CancellationToken ct)
+        {
+            ctx.Actors.Find(a.ActorId)?.SetAnimatorBool(a.ParameterName, a.Value);
+            return UniTask.CompletedTask;
+        }
+    }
+
+    /// <inheritdoc cref="ActorAnimBoolActionHandler"/>
+    public sealed class ActorAnimIntActionHandler : DramaSimpleActionHandler<ActorAnimIntAction>
+    {
+        protected override UniTask RunAsync(ActorAnimIntAction a, IDramaContext ctx, CancellationToken ct)
+        {
+            ctx.Actors.Find(a.ActorId)?.SetAnimatorInt(a.ParameterName, a.Value);
+            return UniTask.CompletedTask;
+        }
+    }
+
+    /// <inheritdoc cref="ActorAnimBoolActionHandler"/>
+    public sealed class ActorAnimFloatActionHandler : DramaSimpleActionHandler<ActorAnimFloatAction>
+    {
+        protected override UniTask RunAsync(ActorAnimFloatAction a, IDramaContext ctx, CancellationToken ct)
+        {
+            ctx.Actors.Find(a.ActorId)?.SetAnimatorFloat(a.ParameterName, a.Value);
+            return UniTask.CompletedTask;
+        }
+    }
+
+    /// <inheritdoc cref="ActorAnimBoolActionHandler"/>
+    public sealed class ActorAnimTriggerActionHandler : DramaSimpleActionHandler<ActorAnimTriggerAction>
+    {
+        protected override UniTask RunAsync(ActorAnimTriggerAction a, IDramaContext ctx, CancellationToken ct)
+        {
+            ctx.Actors.Find(a.ActorId)?.SetAnimatorTrigger(a.ParameterName, a.Reset);
+            return UniTask.CompletedTask;
         }
     }
 

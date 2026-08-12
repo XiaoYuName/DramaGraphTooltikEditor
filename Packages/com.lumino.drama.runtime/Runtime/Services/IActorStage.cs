@@ -38,8 +38,33 @@ namespace Drama.Runtime.Services
 
         /// <summary>
         /// 播动画。<paramref name="loop"/> 为 true 时应当立刻返回（不然永远等不到结束）。
+        ///
+        /// 三种立绘各自解释：Spine 是 AnimationState 的动画名，
+        /// 图片立绘是序列帧的名字，Live2D 一般走 Animator 的状态名。
+        /// 不支持的实现打一条警告后返回即可，别抛。
         /// </summary>
         UniTask PlayAnimationAsync(string animationName, int track, bool loop, float timeScale, CancellationToken ct);
+
+        /// <summary>
+        /// 设置 Animator 参数。Live2D 的表情 / 动作走 Unity 状态机，靠这组指令驱动。
+        ///
+        /// <b>没有 Animator 的实现（Spine / 静态图片）应当打一条警告后什么都不做。</b>
+        /// 抛异常会把整段剧情打断，而策划在错误的立绘上挂了个 Animator 指令
+        /// 是个配置错误，不该升级成播放事故。
+        /// </summary>
+        void SetAnimatorBool(string parameterName, bool value);
+
+        /// <inheritdoc cref="SetAnimatorBool"/>
+        void SetAnimatorInt(string parameterName, int value);
+
+        /// <inheritdoc cref="SetAnimatorBool"/>
+        void SetAnimatorFloat(string parameterName, float value);
+
+        /// <summary>
+        /// SetTrigger / ResetTrigger。<paramref name="reset"/> 为 true 时是撤销一个
+        /// 还没被状态机消费掉的触发 —— 不撤的话它会一直挂着，等走到某个能用它的状态时突然触发。
+        /// </summary>
+        void SetAnimatorTrigger(string parameterName, bool reset);
     }
 
     /// <summary>
@@ -80,8 +105,15 @@ namespace Drama.Runtime.Services
     /// </summary>
     public interface IActorStage
     {
-        /// <summary>拿到（必要时加载并入场）指定角色的立绘。</summary>
-        UniTask<IActorView> AcquireAsync(int actorId, CancellationToken ct);
+        /// <summary>
+        /// 拿到（必要时加载并入场）指定角色的立绘。
+        ///
+        /// <paramref name="kind"/> 决定实例化哪种立绘、去角色表的哪个字段取路径。
+        /// <b>同一个角色同时只应当有一种立绘在台上</b>：剧本先用骨骼出场、
+        /// 后面又用图片出场同一个角色时，实现里应当把旧的换掉而不是叠两份，
+        /// 否则 <see cref="Find"/> 拿到哪一个就成了随机的。
+        /// </summary>
+        UniTask<IActorView> AcquireAsync(int actorId, EActorAssetKind kind, CancellationToken ct);
 
         /// <summary>找已经在台上的立绘；不在台上返回 null。</summary>
         IActorView Find(int actorId);
