@@ -111,19 +111,9 @@ namespace Drama.Editor.Export
             script.FormatVersion = DramaScript.CurrentFormatVersion;
             script.DramaId = ctx.Eval<long>(entry.GetInputPortByName(StartDramaNode.DramaID), -1);
 
-            // 产物是按图的文件名命名的，而运行时按 DramaId 找剧本（Goto、读档恢复都是）。
-            // 两者不等的话运行时永远加载不到，而且报错指向的是"加载失败"，
-            // 很难联想到是「进入」节点里那个 ID 填错了
-            var fileName = Path.GetFileNameWithoutExtension(graphPath);
-            if (!long.TryParse(fileName, out var idFromName))
-            {
-                ctx.Warn($"图的文件名「{fileName}」不是数字，运行时按 DramaId 取资产会找不到它。建议把图改名成剧情ID");
-            }
-            else if (idFromName != script.DramaId)
-            {
-                ctx.Warn($"「进入」节点的剧情ID 是 {script.DramaId}，但图的文件名是 {fileName} —— " +
-                         "运行时按剧情ID 找资产（Goto / 读档恢复），两者必须一致，否则加载不到");
-            }
+            // 这里【不】校验"剧情ID 等于文件名"：宿主是按配置表 DramaData
+            // （ID → DramaScriptsPath）定位剧本资产的，产物叫什么名字都行。
+            // 要保证的是那张表里这个 ID 的路径指向本次导出的产物 —— 那不是导出器能看见的事
             script.SourceGraph = graphPath;
             script.Actions = ctx.Actions;
             script.EntryIndex = entryIndices[0];
