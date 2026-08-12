@@ -1,4 +1,3 @@
-using System;
 using DG.Tweening;
 using Unity.GraphToolkit.Editor;
 using UnityEngine;
@@ -6,11 +5,18 @@ using UnityEngine;
 namespace Drama.Editor
 {
     /// <summary>
-    /// 立绘显示 / 隐藏
+    /// 「立绘出现」这一族的公共定义：角色ID / 方向 / 显示方式 / 过度，
+    /// 加上位置、缩放，以及带动画时才出现的时长端口。
+    ///
+    /// <b>三种立绘（Spine / Texture / Live2D）除了资源类型完全一样</b>：
+    /// 填一个角色ID，剩下的摆位和显隐参数一模一样。所以只有 <c>[Node]</c> 那一行不同，
+    /// 定义全在这儿。分成三个节点而不是加一个"类型"下拉，是因为类型决定了运行时
+    /// 该实例化哪种立绘，做成下拉的话策划改错一次要到播放时才发现。
+    ///
+    /// ⚠️ 端口名和选项名是<b>存档格式的一部分</b>，改名会让已有图上的连线和填值丢失。
     /// </summary>
-    [Node("命令/立绘", "Assets/Drama/Assets/Start.png", "立绘出现")]
-    [Serializable]
-    public class ActorShowNode : DramaNode
+    [System.Serializable]
+    public abstract class ActorShowNodeBase : DramaNode
     {
         // ---- Option 名 ----
         internal const string k_CharId   = "CharId";
@@ -82,7 +88,7 @@ namespace Drama.Editor
                 .WithTooltip("展示出现的方向")
                 .Delayed()
                 .Build();
-            
+
             context.AddOption<EActorShowKind>(k_ShowKind)
                 .WithDisplayName("显示方式")
                 .WithDefaultValue(EActorShowKind.FadeIn)

@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Drama.Editor
 {
     [System.Serializable]
-    [Node("命令/骨骼","Assets/Drama/Assets/Skin.png","皮肤")]
+    [Node("命令/立绘/Spine","Assets/Drama/Assets/Skin.png","皮肤")]
     public class ActorSetSkin : ActorDramaNode
     {
         public string SkinName = "skinName";
