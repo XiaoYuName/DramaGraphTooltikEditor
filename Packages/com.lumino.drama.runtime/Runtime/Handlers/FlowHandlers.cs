@@ -68,4 +68,42 @@ namespace Drama.Runtime.Handlers
         protected override UniTask RunAsync(ReceiveTaskAction a, IDramaContext ctx, CancellationToken ct)
             => a.TaskId > 0 ? ctx.Game.ReceiveTaskAsync(a.TaskId, ct) : UniTask.CompletedTask;
     }
+
+    /// <summary>
+    /// 切换游戏内的真实场景。
+    ///
+    /// <b>Skip / 读档恢复也照切</b> —— 场景是状态不是演出，
+    /// 跳过时更不能让剧情停在上一个场景里；恢复时也得把玩家放回当年那个场景。
+    /// </summary>
+    public sealed class ChangeGameSceneActionHandler : DramaSimpleActionHandler<ChangeGameSceneAction>
+    {
+        protected override UniTask RunAsync(ChangeGameSceneAction a, IDramaContext ctx, CancellationToken ct)
+        {
+            if (a.MapSceneId <= 0 && a.MinSceneId <= 0)
+            {
+                UnityEngine.Debug.LogWarning($"[Drama] #{a.Index} 游戏场景两个 ID 都没填，已跳过");
+                return UniTask.CompletedTask;
+            }
+
+            return ctx.Game?.ChangeGameSceneAsync(a.MapSceneId, a.MinSceneId, ct) ?? UniTask.CompletedTask;
+        }
+    }
+
+    /// <summary>
+    /// 剧情结束并打开一个界面。
+    ///
+    /// 只是把界面名报给宿主，真正打开的时机由宿主的收尾流程决定 —— 原因见
+    /// <see cref="Services.IDramaGameBridge.RequestOpenUIOnEnd"/>。
+    /// 本指令没有后继，执行完剧情就结束了。
+    /// </summary>
+    public sealed class EndUIDramaActionHandler : DramaSimpleActionHandler<EndUIDramaAction>
+    {
+        protected override UniTask RunAsync(EndUIDramaAction a, IDramaContext ctx, CancellationToken ct)
+        {
+            if (!string.IsNullOrEmpty(a.UiPage))
+                ctx.Game?.RequestOpenUIOnEnd(a.UiPage);
+
+            return UniTask.CompletedTask;
+        }
+    }
 }

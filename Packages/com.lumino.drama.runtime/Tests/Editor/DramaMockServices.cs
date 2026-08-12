@@ -294,12 +294,23 @@ namespace Drama.Runtime.Tests
     public sealed class MockGameBridge : IDramaGameBridge
     {
         public readonly List<long> ReceivedTasks = new List<long>();
+        public readonly List<(long MapSceneId, long MinSceneId)> SceneChanges =
+            new List<(long, long)>();
+        public readonly List<string> RequestedEndUIs = new List<string>();
 
         public UniTask ReceiveTaskAsync(long taskId, CancellationToken ct)
         {
             ReceivedTasks.Add(taskId);
             return UniTask.CompletedTask;
         }
+
+        public UniTask ChangeGameSceneAsync(long mapSceneId, long minSceneId, CancellationToken ct)
+        {
+            SceneChanges.Add((mapSceneId, minSceneId));
+            return UniTask.CompletedTask;
+        }
+
+        public void RequestOpenUIOnEnd(string uiPage) => RequestedEndUIs.Add(uiPage);
     }
 
     /// <summary>把上面这堆一次性装配好。</summary>

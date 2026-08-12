@@ -291,6 +291,51 @@ namespace Drama.Runtime
         public override string Summary => $"领取任务 · {TaskId}";
     }
 
+    /// <summary>
+    /// 切换<b>游戏内的真实场景</b>，不是剧情的背景图。
+    ///
+    /// 和 <c>ChangeBackgroundAction</c> 的区别：那个只是换剧情舞台后面那张图，
+    /// 这个会真的去加载 / 卸载场景。放在"流程"而不是"场景 / 演出"里，
+    /// 是因为它动的是宿主的世界状态，不是这一幕的表现。
+    /// </summary>
+    [Serializable]
+    public sealed class ChangeGameSceneAction : DramaAction
+    {
+        public override string Kind => "游戏场景";
+
+        /// <summary>大场景（地图）ID。小于等于 0 = 留在当前大场景里换小场景。</summary>
+        [LabelText("大场景ID")] public long MapSceneId = -1;
+
+        /// <summary>小场景ID。</summary>
+        [LabelText("小场景ID")] public long MinSceneId = -1;
+
+        public override string Summary => MapSceneId > 0
+            ? $"游戏场景 · {MapSceneId} / {MinSceneId}"
+            : $"游戏场景 · 换小场景 {MinSceneId}";
+    }
+
+    /// <summary>
+    /// 剧情结束并打开一个界面。
+    ///
+    /// <b>这条指令自己不打开 UI</b>，只是把"结束之后开哪个"报上去 ——
+    /// 剧情 UI 的收尾（关剧情面板、把进剧情前那批界面还回去）发生在整段播放<b>之后</b>，
+    /// 在指令里当场打开的话会被紧接着的收尾盖掉或压到底层。
+    ///
+    /// 它没有输出流程端口，所以执行完 <c>Next</c> 为空、剧情到此为止 ——
+    /// "结束"从来不是一条指令，而是"没有后继"这个状态。
+    /// </summary>
+    [Serializable]
+    public sealed class EndUIDramaAction : DramaAction
+    {
+        public override string Kind => "UI结束";
+
+        /// <summary>宿主 UI 系统里的界面名。空 = 只结束，不开界面。</summary>
+        [LabelText("界面名")] public string UiPage;
+
+        public override string Summary =>
+            string.IsNullOrEmpty(UiPage) ? "结束" : $"结束 · 打开 {UiPage}";
+    }
+
     #endregion
 
     #region 立绘

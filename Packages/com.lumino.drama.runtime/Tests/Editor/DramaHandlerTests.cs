@@ -390,6 +390,53 @@ namespace Drama.Runtime.Tests
             CollectionAssert.IsEmpty(m_S.Game.ReceivedTasks);
         }
 
+        // ============================================================ 游戏场景
+
+        [Test]
+        public void 游戏场景_转交给业务层()
+        {
+            RunToEnd(new ChangeGameSceneActionHandler(),
+                     new ChangeGameSceneAction { MapSceneId = 10, MinSceneId = 20 });
+
+            CollectionAssert.AreEqual(new[] { (10L, 20L) }, m_S.Game.SceneChanges);
+        }
+
+        [Test]
+        public void 游戏场景_只填小场景也照切()
+        {
+            // 大场景留空 = 留在当前大场景里换小场景，是合法用法
+            RunToEnd(new ChangeGameSceneActionHandler(),
+                     new ChangeGameSceneAction { MapSceneId = -1, MinSceneId = 20 });
+
+            CollectionAssert.AreEqual(new[] { (-1L, 20L) }, m_S.Game.SceneChanges);
+        }
+
+        [Test]
+        public void 游戏场景_两个ID都没填时跳过()
+        {
+            LogAssert_ExpectWarning();
+            RunToEnd(new ChangeGameSceneActionHandler(),
+                     new ChangeGameSceneAction { MapSceneId = -1, MinSceneId = -1 });
+
+            CollectionAssert.IsEmpty(m_S.Game.SceneChanges);
+        }
+
+        // ============================================================ UI结束
+
+        [Test]
+        public void UI结束_把界面名报给宿主而不是当场打开()
+        {
+            RunToEnd(new EndUIDramaActionHandler(), new EndUIDramaAction { UiPage = "MainUI" });
+            CollectionAssert.AreEqual(new[] { "MainUI" }, m_S.Game.RequestedEndUIs);
+        }
+
+        [Test]
+        public void UI结束_没填界面名时等同于普通结束()
+        {
+            RunToEnd(new EndUIDramaActionHandler(), new EndUIDramaAction { UiPage = "" });
+            CollectionAssert.IsEmpty(m_S.Game.RequestedEndUIs);
+        }
+
         static void LogAssert_ExpectWarning() =>
             UnityEngine.TestTools.LogAssert.Expect(LogType.Warning, new System.Text.RegularExpressions.Regex(".*"));
     }
