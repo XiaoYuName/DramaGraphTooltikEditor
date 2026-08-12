@@ -72,7 +72,6 @@ MonoBehaviour:
         - rid: 3931017109153776254
         - rid: 3931017109153776354
         - rid: 3931017126951256843
-        - rid: 3100646138710851722
         m_GraphWireModels:
         - rid: 3100646108252078088
         - rid: 3100646108252078092
@@ -1000,14 +999,6 @@ MonoBehaviour:
             Hash: 5fd81040d684b501ce46343926b65aa1
           m_Category: 2
           m_Index: 45
-        - m_Guid:
-            m_Value0: 16608873481911524596
-            m_Value1: 8300936872610891787
-          m_HashGuid:
-            serializedVersion: 2
-            Hash: f4dcbd286f927ee60b08eafa1ada3273
-          m_Category: 0
-          m_Index: 42
         m_Graph:
           rid: 3100646108252078082
     - rid: 3100646108252078081
@@ -2219,55 +2210,6 @@ MonoBehaviour:
         m_Value: 0
     - rid: 3100646131889602601
       type: {class: TalkShowNode, ns: Drama.Editor, asm: DramaEditor}
-      data: 
-    - rid: 3100646138710851722
-      type: {class: UserNodeModelImp, ns: Unity.GraphToolkit.Editor.Implementation, asm: UnityEditor.GraphToolkitModule}
-      data:
-        m_Guid:
-          m_Value0: 16608873481911524596
-          m_Value1: 8300936872610891787
-        m_HashGuid:
-          serializedVersion: 2
-          Hash: f4dcbd286f927ee60b08eafa1ada3273
-        m_Version: 2
-        m_Position: {x: 7408.648, y: -391.65686}
-        m_Title: 
-        m_Tooltip: 
-        m_NodePreviewModel:
-          rid: -2
-        m_State: 0
-        m_InputConstantsById:
-          m_KeyList:
-          - LocalizationTable
-          - LocalizationKey
-          m_ValueList:
-          - rid: 3100646138710851723
-          - rid: 3100646138710851724
-        m_InputPortInfos:
-          expandedPortsById:
-            m_KeyList: []
-            m_ValueList: 
-        m_OutputPortInfos:
-          expandedPortsById:
-            m_KeyList: []
-            m_ValueList: 
-        m_Collapsed: 0
-        m_CurrentModeIndex: 0
-        m_ElementColor:
-          m_Color: {r: 0, g: 0, b: 0, a: 0}
-          m_HasUserColor: 0
-        m_Node:
-          rid: 3100646138710851725
-    - rid: 3100646138710851723
-      type: {class: 'Constant`1[[System.String, mscorlib]]', ns: Unity.GraphToolkit.Editor, asm: UnityEditor.GraphToolkitModule}
-      data:
-        m_Value: 
-    - rid: 3100646138710851724
-      type: {class: 'Constant`1[[System.String, mscorlib]]', ns: Unity.GraphToolkit.Editor, asm: UnityEditor.GraphToolkitModule}
-      data:
-        m_Value: 
-    - rid: 3100646138710851725
-      type: {class: LocalizationNode, ns: Drama.Editor, asm: DramaEditor}
       data: 
     - rid: 3931017109153775713
       type: {class: UserContextNodeModelImp, ns: Unity.GraphToolkit.Editor.Implementation, asm: UnityEditor.GraphToolkitModule}
