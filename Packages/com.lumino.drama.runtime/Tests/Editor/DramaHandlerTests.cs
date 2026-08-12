@@ -371,9 +371,65 @@ namespace Drama.Runtime.Tests
             var awaiter = Run(new ChoiceActionHandler(), action);
             var result = awaiter.GetResult();
 
-            CollectionAssert.AreEqual(new[] { "T/A", "T/B" }, m_S.Choice.LastOptions);
             Assert.AreEqual(DramaFlowResult.EKind.Jump, result.Kind);
             Assert.AreEqual(9, result.JumpTarget);
+        }
+
+        [Test]
+        public void 选项_选项文字原样透传给View而不是查好的字符串()
+        {
+            var action = new ChoiceAction
+            {
+                Options = new[]
+                {
+                    new ChoiceAction.Option { Text = new LocalizedRef { Table = "T", Key = "A" }, Next = 5 },
+                    new ChoiceAction.Option { Text = new LocalizedRef { Table = "T", Key = "B" }, Next = 9 },
+                },
+            };
+
+            Run(new ChoiceActionHandler(), action).GetResult();
+
+            CollectionAssert.AreEqual(
+                new[]
+                {
+                    new LocalizedRef { Table = "T", Key = "A" },
+                    new LocalizedRef { Table = "T", Key = "B" },
+                },
+                m_S.Choice.LastOptions);
+
+            // 面板要挂着等玩家，这期间切语言得跟着变 —— 在这一层查表就定死了
+            CollectionAssert.IsEmpty(m_S.Localization.Resolved, "选项文字不该在 Handler 层查表");
+        }
+
+        /// <summary>
+        /// 自动 / 跳过都不能替玩家做选择 —— 选项是分歧点，替他选等于把剧情走向也定了。
+        /// 这一条和绝大多数 AVG 一致：自动播放到选项就停下来等人。
+        /// </summary>
+        [TestCase(EDramaPlaybackMode.Auto)]
+        [TestCase(EDramaPlaybackMode.Skip)]
+        [TestCase(EDramaPlaybackMode.FastForward)]
+        public void 选项_自动和跳过模式下依然等玩家选(EDramaPlaybackMode mode)
+        {
+            m_S.Mode = mode;
+            m_S.Choice.HoldUntilPicked = true;
+            m_S.Choice.PickIndex = 1;
+
+            var action = new ChoiceAction
+            {
+                Options = new[]
+                {
+                    new ChoiceAction.Option { Text = new LocalizedRef { Table = "T", Key = "A" }, Next = 5 },
+                    new ChoiceAction.Option { Text = new LocalizedRef { Table = "T", Key = "B" }, Next = 9 },
+                },
+            };
+
+            var awaiter = Run(new ChoiceActionHandler(), action);
+            Assert.IsFalse(awaiter.IsCompleted, $"{mode} 模式下也必须停下来等玩家选");
+
+            m_S.Choice.PickLatch.Open();
+
+            Assert.IsTrue(awaiter.IsCompleted);
+            Assert.AreEqual(9, awaiter.GetResult().JumpTarget, "选完要走玩家选的那条支线");
         }
 
         [Test]

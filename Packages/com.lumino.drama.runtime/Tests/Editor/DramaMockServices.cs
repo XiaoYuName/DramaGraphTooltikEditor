@@ -69,13 +69,27 @@ namespace Drama.Runtime.Tests
 
     public sealed class MockChoiceView : IChoiceView
     {
-        public string[] LastOptions;
+        public LocalizedRef[] LastOptions;
         public int PickIndex;
 
-        public UniTask<int> PickAsync(string[] options, CancellationToken ct)
+        /// <summary>
+        /// 打开就表示"面板挂在那儿等玩家"，要靠 <see cref="Latch.Open"/> 才放行。
+        /// 默认不挂 —— 大部分测试只关心选完之后的流程走向。
+        /// </summary>
+        public bool HoldUntilPicked;
+
+        public readonly Latch PickLatch = new Latch();
+
+        public async UniTask<int> PickAsync(LocalizedRef[] options, CancellationToken ct)
         {
             LastOptions = options;
-            return UniTask.FromResult(PickIndex);
+
+            if (HoldUntilPicked)
+            {
+                await PickLatch.WaitAsync(ct);
+            }
+
+            return PickIndex;
         }
     }
 
@@ -187,8 +201,12 @@ namespace Drama.Runtime.Tests
         public readonly List<string> PreloadedStringTables = new List<string>();
         public readonly List<string> PreloadedAssetTables = new List<string>();
 
+        /// <summary>被查过表的引用。用来验证"该原样透传的地方没有提前查表"。</summary>
+        public readonly List<LocalizedRef> Resolved = new List<LocalizedRef>();
+
         public string Resolve(LocalizedRef reference)
         {
+            Resolved.Add(reference);
             if (reference.IsEmpty) return string.Empty;
             var key = reference.ToString();
             return Overrides.TryGetValue(key, out var v) ? v : key;

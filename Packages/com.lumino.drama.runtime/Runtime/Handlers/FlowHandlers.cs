@@ -32,7 +32,9 @@ namespace Drama.Runtime.Handlers
             }
             else
             {
-                var labels = a.Options.Select(o => ctx.Localization.Resolve(o.Text)).ToArray();
+                // 原样把引用交下去，不在这儿查表 —— 面板要挂着等玩家，
+                // 这期间切语言得跟着变，查好的字符串做不到（见 IChoiceView.PickAsync）
+                var labels = a.Options.Select(o => o.Text).ToArray();
                 picked = await ctx.Choice.PickAsync(labels, ct);
 
                 // 记录放在校验之后：非法选择（面板还没实现、被取消）不该进存档路径，

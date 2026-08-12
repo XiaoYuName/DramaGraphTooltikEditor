@@ -69,7 +69,15 @@ namespace Drama.Runtime.Services
     /// <summary>选项面板。</summary>
     public interface IChoiceView
     {
-        /// <summary>弹出选项并等玩家选，返回选中的下标。</summary>
-        UniTask<int> PickAsync(string[] options, CancellationToken ct);
+        /// <summary>
+        /// 弹出选项并等玩家选，返回选中的下标。
+        ///
+        /// <b>收的是多语言引用而不是查好的字符串</b>，和台词（<see cref="DialogueLine.TextRef"/>）
+        /// 一个口径：选项面板会一直挂在屏幕上等玩家，这期间玩家完全可能去设置里切语言。
+        /// 交字符串的话那一刻就定死了，切完语言选项还是旧语种。
+        /// 实现方应当把引用交给宿主的多语言组件（本工程是 <c>LocalizeStringEvent</c>），
+        /// 由它自己响应语言变更。
+        /// </summary>
+        UniTask<int> PickAsync(LocalizedRef[] options, CancellationToken ct);
     }
 }
