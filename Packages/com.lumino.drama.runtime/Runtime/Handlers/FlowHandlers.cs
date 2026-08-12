@@ -21,8 +21,25 @@ namespace Drama.Runtime.Handlers
             if (a.Options == null || a.Options.Length == 0)
                 return DramaFlowResult.Continue;
 
-            var labels = a.Options.Select(o => ctx.Localization.Resolve(o.Text)).ToArray();
-            var picked = await ctx.Choice.PickAsync(labels, ct);
+            int picked;
+
+            // 读档恢复：把当年选的那个原样喂回去，不弹面板。
+            // 取不到记录（剧本改过、存档是老版本）就退化成正常询问 ——
+            // 恢复中途弹个选项面板很怪，但比走错支线、恢复出错误的现场强
+            if (ctx.Mode == EDramaPlaybackMode.Restoring && ctx.TryTakeRestoredChoice(out var restored))
+            {
+                picked = restored;
+            }
+            else
+            {
+                var labels = a.Options.Select(o => ctx.Localization.Resolve(o.Text)).ToArray();
+                picked = await ctx.Choice.PickAsync(labels, ct);
+
+                // 记录放在校验之后：非法选择（面板还没实现、被取消）不该进存档路径，
+                // 否则下次恢复会拿一个 -1 去喂，直接把剧情停在这儿
+                if (picked >= 0 && picked < a.Options.Length)
+                    ctx.ReportChoicePicked(picked);
+            }
 
             if (picked < 0 || picked >= a.Options.Length)
                 return DramaFlowResult.Stop;

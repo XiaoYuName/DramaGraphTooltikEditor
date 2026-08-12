@@ -33,13 +33,15 @@ namespace Drama.Runtime.Handlers
             // 只有「指定角色」才有立绘上的说话人，旁白/主角/自定义名一律当没有。
             ctx.Actors?.SetSpeaker(a.Speaker == ESpeakerKind.Actor ? a.ActorId : -1);
 
-            if (!a.Voice.IsEmpty && ctx.Mode != EDramaPlaybackMode.Skip)
+            if (!a.Voice.IsEmpty && !DramaWait.IsInstant(ctx.Mode))
                 ctx.Audio.PlayVoice(a.Voice);
 
             // 打字机跑完（或被玩家点断）
             await ctx.Dialogue.ShowLineAsync(line, ctx.Mode, ct);
 
-            if (ctx.Mode == EDramaPlaybackMode.Skip)
+            // 跳过 / 读档恢复都不等玩家。恢复期间尤其重要：这一条不成立的话，
+            // 重放会停在第一句台词上等点击，读档就再也走不到存档点了
+            if (DramaWait.IsInstant(ctx.Mode))
             {
                 ctx.Audio.StopVoice();
                 return;

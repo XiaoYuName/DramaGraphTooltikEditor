@@ -79,6 +79,29 @@ namespace Drama.Runtime.Tests
         public Drama.Runtime.Services.IDramaAssetProvider Assets       { get; set; }
         public Drama.Runtime.Services.IDramaAudio         Audio        { get; set; }
         public Drama.Runtime.Services.IDramaGameBridge    Game         { get; set; }
+
+        /// <summary>读档恢复时按顺序喂回去的选择。测试可以直接往里塞。</summary>
+        public readonly System.Collections.Generic.Queue<int> RestoredChoices =
+            new System.Collections.Generic.Queue<int>();
+
+        /// <summary>玩家（或恢复）实际选了哪些，按顺序。</summary>
+        public readonly System.Collections.Generic.List<int> PickedChoices =
+            new System.Collections.Generic.List<int>();
+
+        public bool TryTakeRestoredChoice(out int optionIndex)
+        {
+            if (RestoredChoices.Count == 0)
+            {
+                optionIndex = -1;
+                return false;
+            }
+
+            optionIndex = RestoredChoices.Dequeue();
+            PickedChoices.Add(optionIndex);
+            return true;
+        }
+
+        public void ReportChoicePicked(int optionIndex) => PickedChoices.Add(optionIndex);
     }
 
     public sealed class MarkHandler : DramaSimpleActionHandler<MarkAction>
@@ -207,6 +230,10 @@ namespace Drama.Runtime.Tests
         public readonly GateHandler Gates;
         public readonly DramaPlayer Player;
 
+        /// <summary>每条指令执行时的播放模式。验证读档恢复用：重放段应当是 Restoring，之后是原模式。</summary>
+        public readonly System.Collections.Generic.List<(int Index, EDramaPlaybackMode Mode)> ModeTrace =
+            new System.Collections.Generic.List<(int, EDramaPlaybackMode)>();
+
         public TestHarness()
         {
             Gates = new GateHandler(Log);
@@ -215,12 +242,30 @@ namespace Drama.Runtime.Tests
                 .Register(new FlowHandler(Log))
                 .Register(Gates);
             Player = new DramaPlayer(registry);
+
+            // ActionExecuting 是在切模式【之后】触发的，所以这里读到的
+            // 正是这条指令实际执行时的模式
+            Player.ActionExecuting += a => ModeTrace.Add((a.Index, Context.Mode));
         }
+
+        public EDramaPlaybackMode ModeAt(int actionIndex) =>
+            ModeTrace.Find(t => t.Index == actionIndex).Mode;
 
         /// <summary>跑到底并要求同步跑完（图里没有闸门时用）。</summary>
         public DramaPlayResult PlayToEnd(DramaScript script, CancellationToken ct = default)
         {
             var awaiter = Player.PlayAsync(script, Context, ct).GetAwaiter();
+            Assert.IsTrue(awaiter.IsCompleted, $"播放没有同步跑完，卡住了。已执行：{Log.Trace}");
+            return awaiter.GetResult();
+        }
+
+        /// <summary>从头静默重放到 restoreUntilIndex 再正常播。</summary>
+        public DramaPlayResult PlayRestoring(DramaScript script, int restoreUntilIndex,
+                                             CancellationToken ct = default)
+        {
+            var awaiter = Player
+                .PlayAsync(script, Context, ct, entryIndex: -1, restoreUntilIndex: restoreUntilIndex)
+                .GetAwaiter();
             Assert.IsTrue(awaiter.IsCompleted, $"播放没有同步跑完，卡住了。已执行：{Log.Trace}");
             return awaiter.GetResult();
         }

@@ -15,15 +15,21 @@ namespace Drama.Runtime.Flow
         /// <summary>快进时的时长倍率。</summary>
         public static float FastForwardScale = 0.25f;
 
+        /// <summary>
+        /// 这个模式下"一切从速"吗（等待归零、不等玩家输入）。
+        ///
+        /// 跳过和读档恢复在<b>时长</b>上完全一致，区别只在意图，
+        /// 所以凡是判时长的地方都该问这一句，而不是各写各的 <c>== Skip</c> ——
+        /// 漏一处的症状是"读档时卡在某条指令上等玩家点击"，而且很难联想到原因。
+        /// </summary>
+        public static bool IsInstant(EDramaPlaybackMode mode) =>
+            mode == EDramaPlaybackMode.Skip || mode == EDramaPlaybackMode.Restoring;
+
         /// <summary>按当前播放模式换算后的实际时长。做 Tween 时长时用这个。</summary>
         public static float Scale(float seconds, EDramaPlaybackMode mode)
         {
-            switch (mode)
-            {
-                case EDramaPlaybackMode.Skip:        return 0f;
-                case EDramaPlaybackMode.FastForward: return seconds * FastForwardScale;
-                default:                             return seconds;
-            }
+            if (IsInstant(mode)) return 0f;
+            return mode == EDramaPlaybackMode.FastForward ? seconds * FastForwardScale : seconds;
         }
 
         public static float Scale(float seconds, IDramaContext ctx) => Scale(seconds, ctx.Mode);
@@ -44,8 +50,8 @@ namespace Drama.Runtime.Flow
 
             while (true)
             {
-                // 跳过：不管还剩多少，立刻结束
-                if (ctx.Mode == EDramaPlaybackMode.Skip) return;
+                // 跳过 / 读档恢复：不管还剩多少，立刻结束
+                if (IsInstant(ctx.Mode)) return;
 
                 await UniTask.Yield(PlayerLoopTiming.Update, ct);
 

@@ -1,6 +1,9 @@
+using System.Text.RegularExpressions;
 using System.Threading;
 using Drama.Runtime.Flow;
 using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace Drama.Runtime.Tests
 {
@@ -401,6 +404,110 @@ namespace Drama.Runtime.Tests
             h.PlayToEnd(b.Build());
 
             CollectionAssert.AreEqual(new[] { "A", "B" }, seen);
+        }
+
+        // ------------------------------------------------------------ 读档恢复
+
+        [Test]
+        public void 恢复会重放存档点之前的每一条指令()
+        {
+            var b = new ScriptBuilder();
+            var a = b.Mark("A");
+            var bb = b.Mark("B");
+            var c = b.Mark("C");
+            b.Link(a, bb).Link(bb, c).Link(c);
+
+            var h = new TestHarness();
+            h.PlayRestoring(b.Build(), restoreUntilIndex: c);
+
+            // 不是"跳到 C"，而是 A、B 也照跑一遍 —— 舞台就是靠它们堆回来的
+            h.Log.AssertOrder("A", "B", "C");
+        }
+
+        [Test]
+        public void 恢复期间是Restoring模式走到存档点就还原()
+        {
+            var b = new ScriptBuilder();
+            var a = b.Mark("A");
+            var bb = b.Mark("B");
+            var c = b.Mark("C");
+            var d = b.Mark("D");
+            b.Link(a, bb).Link(bb, c).Link(c, d).Link(d);
+
+            var h = new TestHarness();
+            h.Context.Mode = EDramaPlaybackMode.Auto;   // 玩家原来开着自动
+            h.PlayRestoring(b.Build(), restoreUntilIndex: c);
+
+            Assert.AreEqual(EDramaPlaybackMode.Restoring, h.ModeAt(a), "A 应该是被静默重放的");
+            Assert.AreEqual(EDramaPlaybackMode.Restoring, h.ModeAt(bb), "B 应该是被静默重放的");
+
+            // 存档点这一条自己就得正常执行 —— 它是"停在这句台词等玩家"的那一条
+            Assert.AreEqual(EDramaPlaybackMode.Auto, h.ModeAt(c), "存档点应当已经切回原模式");
+            Assert.AreEqual(EDramaPlaybackMode.Auto, h.ModeAt(d));
+            Assert.AreEqual(EDramaPlaybackMode.Auto, h.Context.Mode, "跑完模式必须还是玩家原来那个");
+        }
+
+        [Test]
+        public void 存档点下标越界时从头正常播()
+        {
+            var b = new ScriptBuilder();
+            var a = b.Mark("A");
+            var bb = b.Mark("B");
+            b.Link(a, bb).Link(bb);
+
+            var h = new TestHarness();
+            h.Context.Mode = EDramaPlaybackMode.Normal;
+
+            // 剧本改过、下标不再有效。这里不做任何迁移，就当没这回事
+            h.PlayRestoring(b.Build(), restoreUntilIndex: 999);
+
+            h.Log.AssertOrder("A", "B");
+            Assert.AreEqual(EDramaPlaybackMode.Normal, h.ModeAt(a), "越界时不该进恢复模式");
+            Assert.AreEqual(EDramaPlaybackMode.Normal, h.Context.Mode);
+        }
+
+        [Test]
+        public void 存档点在走不到的地方时模式也要还原()
+        {
+            // C 是孤立的：下标合法，但从入口顺着连线永远到不了
+            var b = new ScriptBuilder();
+            var a = b.Mark("A");
+            var bb = b.Mark("B");
+            var c = b.Mark("C");
+            b.Link(a, bb).Link(bb);
+
+            var h = new TestHarness();
+            h.Context.Mode = EDramaPlaybackMode.Normal;
+
+            LogAssert.Expect(LogType.Warning, new Regex("没走到那一条"));
+            h.PlayRestoring(b.Build(), restoreUntilIndex: c);
+
+            // 这条不还原的话，后面整段剧情会以 Restoring 的速度冲完，
+            // 表现是"读档后剧情一闪而过"，而且很难看出是模式没还
+            Assert.AreEqual(EDramaPlaybackMode.Normal, h.Context.Mode, "没到达目标也必须把模式还回去");
+        }
+
+        [Test]
+        public void 恢复点落在并行分支里也能重放到位()
+        {
+            //      ┌→ B ┐
+            //  A ──┤    ├→ D
+            //      └→ C ┘
+            // 存档点在分支 C 上 —— 直接从 C 起一个新 Runner 会丢掉 B 和汇合语义，
+            // 重放则是照原结构走，两个问题一起解决
+            var b = new ScriptBuilder();
+            var a = b.Mark("A");
+            var bb = b.Mark("B");
+            var c = b.Mark("C");
+            var d = b.Mark("D");
+            b.Link(a, bb, c).Link(bb, d).Link(c, d).Link(d);
+
+            var h = new TestHarness();
+            h.PlayRestoring(b.Build(), restoreUntilIndex: c);
+
+            Assert.AreEqual(4, h.ModeTrace.Count, $"每条都该跑到一次：{h.Log.Trace}");
+            Assert.AreEqual(EDramaPlaybackMode.Normal, h.ModeAt(c), "存档点应当已经切回原模式");
+            Assert.AreEqual(EDramaPlaybackMode.Normal, h.ModeAt(d), "汇合点在存档点之后，应当正常执行");
         }
     }
 }
