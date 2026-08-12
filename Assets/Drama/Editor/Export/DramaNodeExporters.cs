@@ -41,7 +41,15 @@ namespace Drama.Editor.Export
                 case EndUIDramaNode n:         ExportEndUI(n, ctx); return true;
 
                 // ------------------------------------------------ 立绘
-                case ActorShowNode n:          ExportActorShow(n, ctx); return true;
+                // 三种立绘在图里是三个节点，到数据层收敛成同一条指令 + 一个类型字段
+                case ActorShowNode n:          ExportActorShow(n, ctx, EActorAssetKind.Spine); return true;
+                case ActorTextureShow n:       ExportActorShow(n, ctx, EActorAssetKind.Texture); return true;
+                case ActorLive2DShow n:        ExportActorShow(n, ctx, EActorAssetKind.Live2D); return true;
+                case ActorPlayAnimNode n: ExportActorTextureAnim(n, ctx); return true;
+                case ActorAnimSetBoolNode n:    ExportActorAnimBool(n, ctx); return true;
+                case ActorAnimSetIntNode n:     ExportActorAnimInt(n, ctx); return true;
+                case ActorAnimSetFloatNode n:   ExportActorAnimFloat(n, ctx); return true;
+                case ActorAnimSetTriggerNode n: ExportActorAnimTrigger(n, ctx); return true;
                 case ActorTransformNode n:     ExportActorTransform(n, ctx); return true;
                 case ActorSetSkin n:           ExportActorSkin(n, ctx); return true;
                 case ActorPlayAnimationNode n: ExportActorAnim(n, ctx); return true;
@@ -232,25 +240,103 @@ namespace Drama.Editor.Export
             return actorId;
         }
 
-        static void ExportActorShow(ActorShowNode n, DramaExportContext ctx)
+        /// <summary>
+        /// 立绘出现。三种立绘（骨骼 / 图片 / Live2D）共用这一个方法 ——
+        /// 它们的参数定义在编辑器侧就是同一个基类（<see cref="ActorShowNodeBase"/>），
+        /// 只有资源类型不同，由调用方按节点类型传进来。
+        /// </summary>
+        static void ExportActorShow(ActorShowNodeBase n, DramaExportContext ctx, EActorAssetKind assetKind)
         {
-            var kind = ctx.Option(n, ActorShowNode.k_ShowKind, EActorShowKind.FadeIn);
+            var kind = ctx.Option(n, ActorShowNodeBase.k_ShowKind, EActorShowKind.FadeIn);
             var animated = kind == EActorShowKind.FadeIn || kind == EActorShowKind.FadeOut;
 
             ctx.Emit(new ActorShowAction
             {
-                ActorId           = ctx.Option(n, ActorShowNode.k_CharId, 1),
+                ActorId           = ctx.Option(n, ActorShowNodeBase.k_CharId, 1),
+                AssetKind         = assetKind,
                 ShowKind          = MapShowKind(kind),
-                Direction         = MapShowDirection(ctx.Option(n, ActorShowNode.k_ShowDirection, EActorShowDirection.Left)),
-                Position          = ctx.Port(n, ActorShowNode.k_Pos, Vector2.zero),
+                Direction         = MapShowDirection(ctx.Option(n, ActorShowNodeBase.k_ShowDirection, EActorShowDirection.Left)),
+                Position          = ctx.Port(n, ActorShowNodeBase.k_Pos, Vector2.zero),
                 // 倍率，不是百分比 —— 和「立绘缩放」节点保持同一个口径
-                Scale             = ctx.Port(n, ActorShowNode.k_Scale, Vector2.one),
+                Scale             = ctx.Port(n, ActorShowNodeBase.k_Scale, Vector2.one),
                 // 时长端口只在带动画时存在；编辑器里是毫秒
-                DurationSeconds   = animated ? ctx.Port(n, ActorShowNode.k_Duration, 600f) / 1000f : 0f,
-                Ease            = ctx.Option(n, ActorShowNode.k_Ease, DG.Tweening.Ease.Linear),
+                DurationSeconds   = animated ? ctx.Port(n, ActorShowNodeBase.k_Duration, 600f) / 1000f : 0f,
+                Ease            = ctx.Option(n, ActorShowNodeBase.k_Ease, DG.Tweening.Ease.Linear),
                 // 没有"等不等动画"这个开关：想让动画和后面并行，图里连成并行分支即可
             });
         }
+
+        /// <summary>
+        /// 序列动画 / Animator 动画。<b>复用 Spine 那条指令</b> ——
+        /// <c>IActorView.PlayAnimationAsync</c> 本来就不认识 Spine，
+        /// "动画名"具体是骨骼动画、序列帧还是 Animator 的状态名，由台上那个立绘自己解释。
+        ///
+        /// <b>刻意不给这个节点「循环」端口</b>，导出恒为 false：
+        ///   ① <c>Animator.Play</c> 运行时没有 loop 参数，循环与否是 clip 的导入设置，
+        ///      给策划一个运行时执行不了的开关，是在 UI 上撒谎；
+        ///   ② Loop 在这套代码里兼着"要不要等它播完"的职责，而本工程的原则是
+        ///      "一律等动画跑完，想并行就在图里连并行分支"（见 ActorShowActionHandler 的注释）。
+        /// 所以循环与否由实现方运行时自己判断 —— Animator 读 <c>stateInfo.loop</c>，
+        /// 循环就立刻返回，单次就等它播完。策划什么都不用填，也就不可能填错。
+        ///
+        /// Spine 那个节点上的「循环」端口保留：<c>SetAnimation(track, name, loop)</c>
+        /// 的 loop 是真的运行时参数，能生效。
+        /// </summary>
+        static void ExportActorTextureAnim(ActorPlayAnimNode n, DramaExportContext ctx)
+        {
+            var name = ctx.Port(n, ActorPlayAnimNode.AnimationName, string.Empty);
+            if (string.IsNullOrEmpty(name)) ctx.Warn("序列动画没填动画名", n);
+
+            ctx.Emit(new ActorPlayAnimationAction
+            {
+                ActorId       = ActorId(n, ctx),
+                AnimationName = name,
+                TrackIndex    = ctx.Port(n, ActorPlayAnimNode.TrackIndex, 0),
+                Loop          = false,
+                TimeScale     = ctx.Port(n, ActorPlayAnimNode.TimeScale, 1f),
+            });
+        }
+
+        // ---- Animator 参数（Live2D 的表情 / 动作靠它驱动）
+
+        static string AnimParameterName(ActorAnimParameterNode n, DramaExportContext ctx)
+        {
+            var name = ctx.Port(n, ActorAnimParameterNode.ParameterName, string.Empty);
+            if (string.IsNullOrEmpty(name)) ctx.Warn("Animator 参数名没填，运行时会被跳过", n);
+            return name;
+        }
+
+        static void ExportActorAnimBool(ActorAnimSetBoolNode n, DramaExportContext ctx) =>
+            ctx.Emit(new ActorAnimBoolAction
+            {
+                ActorId       = ActorId(n, ctx),
+                ParameterName = AnimParameterName(n, ctx),
+                Value         = ctx.Port(n, ActorAnimSetBoolNode.Value, true),
+            });
+
+        static void ExportActorAnimInt(ActorAnimSetIntNode n, DramaExportContext ctx) =>
+            ctx.Emit(new ActorAnimIntAction
+            {
+                ActorId       = ActorId(n, ctx),
+                ParameterName = AnimParameterName(n, ctx),
+                Value         = ctx.Port(n, ActorAnimSetIntNode.Value, 0),
+            });
+
+        static void ExportActorAnimFloat(ActorAnimSetFloatNode n, DramaExportContext ctx) =>
+            ctx.Emit(new ActorAnimFloatAction
+            {
+                ActorId       = ActorId(n, ctx),
+                ParameterName = AnimParameterName(n, ctx),
+                Value         = ctx.Port(n, ActorAnimSetFloatNode.Value, 0f),
+            });
+
+        static void ExportActorAnimTrigger(ActorAnimSetTriggerNode n, DramaExportContext ctx) =>
+            ctx.Emit(new ActorAnimTriggerAction
+            {
+                ActorId       = ActorId(n, ctx),
+                ParameterName = AnimParameterName(n, ctx),
+                Reset         = ctx.Option(n, ActorAnimSetTriggerNode.k_Mode, EAnimTriggerMode.Set) == EAnimTriggerMode.Reset,
+            });
 
         /// <summary>
         /// 立绘变换。位置 / 旋转 / 缩放三种块共用一个容器，一个块产出一条指令。
