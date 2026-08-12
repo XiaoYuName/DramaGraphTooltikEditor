@@ -14,7 +14,7 @@ namespace Drama.Editor
     /// 勾上才冒出对应的强度端口，没开的效果不占地方。
     /// </summary>
     [System.Serializable]
-    [Node("命令/骨骼","Assets/Drama/Assets/Scale.png","讲话人缩放")]
+    [Node("命令/系统","Assets/Drama/Assets/Scale.png","讲话人缩放")]
     public class ActorSetGraySwitchNode : DramaNode
     {
         // ---- Option 名 ----

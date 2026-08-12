@@ -66,6 +66,47 @@ namespace Drama.Runtime.Tests
         }
 
         [Test]
+        public void 立绘预载带上资源类型()
+        {
+            var keys = DramaAssetKeys.Collect(Make(
+                new ActorShowAction { ActorId = 10000, AssetKind = EActorAssetKind.Live2D },
+                // 只有 ActorShowAction 声明了类型，其它立绘指令收不出来 ——
+                // 它们本来也是在出场之后才轮得到
+                new ActorMoveAction { ActorId = 10000 }));
+
+            CollectionAssert.AreEquivalent(
+                new[] { new ActorAssetRef(10000, EActorAssetKind.Live2D) }, keys.ActorAssets);
+        }
+
+        [Test]
+        public void 同一角色的两种立绘各预载一份()
+        {
+            // 剧本里同一个角色先用骨骼出场、某一幕又换成 CG 立绘，两份资源都得预载。
+            // 去重按"角色 + 类型"这一对，只按 ID 去重会漏掉后者
+            var keys = DramaAssetKeys.Collect(Make(
+                new ActorShowAction { ActorId = 10000, AssetKind = EActorAssetKind.Spine },
+                new ActorShowAction { ActorId = 10000, AssetKind = EActorAssetKind.Texture },
+                new ActorShowAction { ActorId = 10000, AssetKind = EActorAssetKind.Spine }));
+
+            CollectionAssert.AreEquivalent(
+                new[]
+                {
+                    new ActorAssetRef(10000, EActorAssetKind.Spine),
+                    new ActorAssetRef(10000, EActorAssetKind.Texture),
+                },
+                keys.ActorAssets);
+        }
+
+        [Test]
+        public void 立绘预载不收哨兵角色()
+        {
+            var keys = DramaAssetKeys.Collect(Make(
+                new ActorShowAction { ActorId = -1, AssetKind = EActorAssetKind.Texture }));
+
+            CollectionAssert.IsEmpty(keys.ActorAssets);
+        }
+
+        [Test]
         public void 哨兵值不会被当成资源去加载()
         {
             var keys = DramaAssetKeys.Collect(Make(

@@ -4,12 +4,11 @@ using UnityEngine;
 namespace Drama.Editor
 {
     [System.Serializable]
-    [Node("命令/骨骼","Assets/Drama/Assets/PlayAnimation.png","播放动画")]
-    public class ActorPlayAnimationNode : ActorDramaNode
+    [Node("命令/立绘/Animator","Assets/Drama/Assets/Start.png","序列动画")]
+    public class ActorPlayAnimNode : ActorDramaNode
     {
         public const string AnimationName = "AnimationName";
         public const string TrackIndex = "TrackIndex";
-        public const string isLooping = "isLooping";
         public const string TimeScale  = "TimeScale";
 
         protected override void OnDefinePorts(IPortDefinitionContext context)
@@ -22,13 +21,8 @@ namespace Drama.Editor
                 .Build();
 
             context.AddInputPort<int>(TrackIndex)
-                .WithDefaultValue(1)
+                .WithDefaultValue(0)
                 .WithDisplayName("轨道")
-                .Build();
-
-            context.AddInputPort<bool>(isLooping)
-                .WithDefaultValue(false)
-                .WithDisplayName("循环")
                 .Build();
 
             context.AddInputPort<float>(TimeScale)
@@ -38,4 +32,3 @@ namespace Drama.Editor
         }
     }
 }
-

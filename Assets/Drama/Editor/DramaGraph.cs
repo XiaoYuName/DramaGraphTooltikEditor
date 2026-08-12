@@ -81,6 +81,22 @@ namespace Drama.Editor
         Right = 1,
         Center = 2,
     }
+
+    /// <summary>
+    /// Animator 的 Trigger 怎么用。
+    ///
+    /// 之所以要有「重置」：Trigger 被 SetTrigger 之后如果没有任何转换条件消费掉它，
+    /// 会一直挂在那儿，等状态机走到某个能用它的状态时突然触发。
+    /// 剧本里"这次不走那条分支了"就得显式 ResetTrigger 撤掉。
+    /// </summary>
+    public enum EAnimTriggerMode
+    {
+        /// <summary>SetTrigger</summary>
+        Set = 0,
+
+        /// <summary>ResetTrigger</summary>
+        Reset = 1,
+    }
     
     public enum ShakeAxis
     {

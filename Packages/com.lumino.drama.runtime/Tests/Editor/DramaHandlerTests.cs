@@ -329,12 +329,76 @@ namespace Drama.Runtime.Tests
             Assert.AreEqual(0.25f, m_S.Actors.LastDuration, 1e-5f);
         }
 
+        // ============================================================ 立绘类型
+
+        [TestCase(EActorAssetKind.Spine)]
+        [TestCase(EActorAssetKind.Texture)]
+        [TestCase(EActorAssetKind.Live2D)]
+        public void 立绘_出场时把资源类型交给舞台(EActorAssetKind kind)
+        {
+            // 图里是三个不同的节点，到这一层只剩一条指令 + 一个类型字段。
+            // 舞台靠它决定实例化哪种立绘、去角色表的哪个字段取路径
+            RunToEnd(new ActorShowActionHandler(),
+                     new ActorShowAction { ActorId = 100, AssetKind = kind });
+
+            Assert.AreEqual(kind, m_S.Actors.AcquiredKinds[100]);
+        }
+
+        [Test]
+        public void 立绘_老资产没有类型字段时按骨骼处理()
+        {
+            // AssetKind 是后加的字段，之前导出的资产反序列化后落到默认值 0。
+            // 那时候只有 Spine 一种，落到 Spine 才是对的
+            RunToEnd(new ActorShowActionHandler(), new ActorShowAction { ActorId = 100 });
+
+            Assert.AreEqual(EActorAssetKind.Spine, m_S.Actors.AcquiredKinds[100]);
+        }
+
+        // ============================================================ 立绘 Animator
+
+        [Test]
+        public void 立绘Animator_四种参数各自打到对应方法()
+        {
+            m_S.Actors.AcquireAsync(100, EActorAssetKind.Live2D, default).GetAwaiter().GetResult();
+
+            RunToEnd(new ActorAnimBoolActionHandler(),
+                     new ActorAnimBoolAction { ActorId = 100, ParameterName = "IsAngry", Value = true });
+            RunToEnd(new ActorAnimIntActionHandler(),
+                     new ActorAnimIntAction { ActorId = 100, ParameterName = "Face", Value = 3 });
+            RunToEnd(new ActorAnimFloatActionHandler(),
+                     new ActorAnimFloatAction { ActorId = 100, ParameterName = "Blend", Value = 0.5f });
+            RunToEnd(new ActorAnimTriggerActionHandler(),
+                     new ActorAnimTriggerAction { ActorId = 100, ParameterName = "Wave" });
+            RunToEnd(new ActorAnimTriggerActionHandler(),
+                     new ActorAnimTriggerAction { ActorId = 100, ParameterName = "Wave", Reset = true });
+
+            CollectionAssert.AreEqual(
+                new[]
+                {
+                    "bool:IsAngry=True",
+                    "int:Face=3",
+                    "float:Blend=0.5",
+                    "trigger:Wave",
+                    "trigger:Wave:reset",
+                },
+                m_S.Actors.Get(100).AnimatorCalls);
+        }
+
+        [Test]
+        public void 立绘Animator_立绘不在台上时静默跳过()
+        {
+            // 没 AcquireAsync 过。剧本顺序错了是导出该拦的事，运行时不该炸
+            Assert.DoesNotThrow(() =>
+                RunToEnd(new ActorAnimTriggerActionHandler(),
+                         new ActorAnimTriggerAction { ActorId = 999, ParameterName = "Wave" }));
+        }
+
         // ============================================================ 其余 Handler
 
         [Test]
         public void 立绘动画_没配动画名时跳过()
         {
-            m_S.Actors.AcquireAsync(100, default).GetAwaiter().GetResult();
+            m_S.Actors.AcquireAsync(100, EActorAssetKind.Spine, default).GetAwaiter().GetResult();
 
             LogAssert_ExpectWarning();
             RunToEnd(new ActorPlayAnimationActionHandler(),
@@ -346,7 +410,7 @@ namespace Drama.Runtime.Tests
         [Test]
         public void 立绘动画_配了动画名就播()
         {
-            m_S.Actors.AcquireAsync(100, default).GetAwaiter().GetResult();
+            m_S.Actors.AcquireAsync(100, EActorAssetKind.Spine, default).GetAwaiter().GetResult();
 
             RunToEnd(new ActorPlayAnimationActionHandler(),
                      new ActorPlayAnimationAction { ActorId = 100, AnimationName = "idle", TrackIndex = 2 });

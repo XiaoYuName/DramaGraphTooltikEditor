@@ -123,6 +123,21 @@ namespace Drama.Runtime.Tests
             PlayedAnimations.Add(animationName);
             return AutoFinishAnimation || loop ? UniTask.CompletedTask : AnimationLatch.WaitAsync(ct);
         }
+
+        /// <summary>收到的 Animator 参数，按顺序记成 "名字=值" 方便断言。</summary>
+        public readonly List<string> AnimatorCalls = new List<string>();
+
+        public void SetAnimatorBool(string parameterName, bool value) =>
+            AnimatorCalls.Add($"bool:{parameterName}={value}");
+
+        public void SetAnimatorInt(string parameterName, int value) =>
+            AnimatorCalls.Add($"int:{parameterName}={value}");
+
+        public void SetAnimatorFloat(string parameterName, float value) =>
+            AnimatorCalls.Add($"float:{parameterName}={value}");
+
+        public void SetAnimatorTrigger(string parameterName, bool reset) =>
+            AnimatorCalls.Add($"trigger:{parameterName}{(reset ? ":reset" : "")}");
     }
 
     public sealed class MockActorStage : IActorStage
@@ -146,8 +161,13 @@ namespace Drama.Runtime.Tests
 
         public MockActorView Get(int actorId) => m_Actors.TryGetValue(actorId, out var a) ? a : null;
 
-        public UniTask<IActorView> AcquireAsync(int actorId, CancellationToken ct)
+        /// <summary>ActorId → 最后一次用哪种资源取的。断言 Handler 有没有把类型传下来。</summary>
+        public readonly Dictionary<int, EActorAssetKind> AcquiredKinds = new Dictionary<int, EActorAssetKind>();
+
+        public UniTask<IActorView> AcquireAsync(int actorId, EActorAssetKind kind, CancellationToken ct)
         {
+            AcquiredKinds[actorId] = kind;
+
             if (!m_Actors.TryGetValue(actorId, out var actor))
                 m_Actors[actorId] = actor = new MockActorView(actorId);
             return UniTask.FromResult<IActorView>(actor);
