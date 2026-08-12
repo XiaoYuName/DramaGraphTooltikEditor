@@ -18,8 +18,10 @@ namespace Drama.Runtime.Handlers
         {
             if (ctx.Screen == null) return;
 
-            // Skip 时不放转场动画，但遮罩该盖上还得盖上 —— 所以是把时长压成 0，不是整条跳过
-            var instant = ctx.Mode == EDramaPlaybackMode.Skip;
+            // Skip / 读档恢复时不放转场动画，但遮罩该盖上还得盖上 ——
+            // 所以是把时长压成 0，不是整条跳过。恢复时更是必须照做：
+            // 存档点前面盖了黑幕没揭的话，恢复出来也得盖着
+            var instant = DramaWait.IsInstant(ctx.Mode);
             var inSeconds = instant ? 0f : a.InSeconds;
             var outSeconds = instant ? 0f : a.OutSeconds;
 

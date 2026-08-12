@@ -66,9 +66,20 @@ namespace Drama.Runtime.Flow
             m_Handlers = handlers ?? throw new ArgumentNullException(nameof(handlers));
         }
 
-        /// <param name="entryIndex">从哪条指令开始。负数 = 用剧本自己的 <see cref="DramaScript.EntryIndex"/>（读档时可以传别的）。</param>
+        /// <param name="entryIndex">从哪条指令开始。负数 = 用剧本自己的 <see cref="DramaScript.EntryIndex"/>。</param>
+        /// <param name="restoreUntilIndex">
+        /// 读档恢复的目标指令。&gt;= 0 时，从入口开始的这一段用
+        /// <see cref="EDramaPlaybackMode.Restoring"/> 静默重放（等待归零、不等输入、
+        /// 选项走存档里的记录），走到这一条时切回原来的模式再正常执行它。
+        ///
+        /// <b>为什么是重放而不是直接从这条开始：</b>屏幕上有什么（背景、BGM、
+        /// 哪些立绘站在哪、对话框皮肤、遮罩盖没盖）是前面每一条指令堆出来的，
+        /// 直接跳过去只有一块空屏。而且并行是结构化 fork-join，
+        /// 从分支中间起一个新 Runner 会丢掉兄弟分支和汇合语义 —— 重放两个问题一起解决。
+        /// </param>
         public async UniTask<DramaPlayResult> PlayAsync(
-            DramaScript script, IDramaContext ctx, CancellationToken ct, int entryIndex = -1)
+            DramaScript script, IDramaContext ctx, CancellationToken ct,
+            int entryIndex = -1, int restoreUntilIndex = -1)
         {
             if (script == null) throw new ArgumentNullException(nameof(script));
             if (ctx == null) throw new ArgumentNullException(nameof(ctx));
@@ -81,7 +92,18 @@ namespace Drama.Runtime.Flow
             var start = entryIndex >= 0 ? entryIndex : script.EntryIndex;
             if (!index.IsValidIndex(start)) return DramaPlayResult.Completed;
 
-            var runner = new Runner(script, index, m_Handlers, ctx, this);
+            // 目标下标越界（剧本改过、存档来自别的版本）就当没这回事，从头正常播。
+            // 这里不做任何"下标迁移"，就按当前剧本的编号来
+            var restoring = restoreUntilIndex >= 0 && index.IsValidIndex(restoreUntilIndex);
+            var modeBeforeRestore = ctx.Mode;
+
+            var runner = new Runner(script, index, m_Handlers, ctx, this)
+            {
+                RestoreTarget = restoring ? restoreUntilIndex : -1,
+                ModeAfterRestore = modeBeforeRestore,
+            };
+
+            if (restoring) ctx.Mode = EDramaPlaybackMode.Restoring;
 
             try
             {
@@ -90,6 +112,22 @@ namespace Drama.Runtime.Flow
             catch (OperationCanceledException)
             {
                 return DramaPlayResult.Cancelled;
+            }
+            finally
+            {
+                // 一路没走到目标（剧本改了、目标落在没选的支线上），得把模式还回去。
+                // 漏了这一步，剩下的剧情会全程以 Restoring 的速度冲完 ——
+                // 表现是"读档后整段剧情一闪而过"，还很难看出是模式没还
+                if (runner.RestoreTarget >= 0)
+                {
+                    ctx.Mode = modeBeforeRestore;
+
+                    // 被取消（退出剧情）时半路收工是正常的，别报
+                    if (!ct.IsCancellationRequested)
+                        UnityEngine.Debug.LogWarning(
+                            $"[Drama] 剧本 {script.DramaId} 恢复到 #{restoreUntilIndex} 的过程中没走到那一条，" +
+                            "已按正常流程继续。多半是剧本改过、存档里的下标不再指向原来的位置");
+                }
             }
 
             if (ct.IsCancellationRequested) return DramaPlayResult.Cancelled;
@@ -139,6 +177,12 @@ namespace Drama.Runtime.Flow
             internal bool HasGoto;
             internal long GotoDramaId;
 
+            /// <summary>读档恢复的目标指令；-1 = 不在恢复中（到达目标后也会置回 -1）。</summary>
+            internal int RestoreTarget = -1;
+
+            /// <summary>到达目标后要还原成哪个模式。</summary>
+            internal EDramaPlaybackMode ModeAfterRestore;
+
             internal Runner(DramaScript script, DramaScriptIndex index, DramaHandlerRegistry handlers,
                             IDramaContext ctx, DramaPlayer owner)
             {
@@ -168,6 +212,15 @@ namespace Drama.Runtime.Flow
 
                     var action = m_Script.Actions[index];
                     if (action == null) return;
+
+                    // 到存档点了：从这一条起恢复正常速度，它自己就是正常执行的第一条。
+                    // 判断放在执行【之前】—— 存档点是"停在这句台词等玩家点击"，
+                    // 所以这一条必须完整地正常跑一遍，不能被当成重放的一部分吞掉
+                    if (RestoreTarget >= 0 && index == RestoreTarget)
+                    {
+                        m_Ctx.Mode = ModeAfterRestore;
+                        RestoreTarget = -1;
+                    }
 
                     m_Owner.RaiseActionExecuting(action);
 

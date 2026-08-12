@@ -110,6 +110,10 @@ namespace Drama.Editor.Export
             var script = ScriptableObject.CreateInstance<DramaScript>();
             script.FormatVersion = DramaScript.CurrentFormatVersion;
             script.DramaId = ctx.Eval<long>(entry.GetInputPortByName(StartDramaNode.DramaID), -1);
+
+            // 这里【不】校验"剧情ID 等于文件名"：宿主是按配置表 DramaData
+            // （ID → DramaScriptsPath）定位剧本资产的，产物叫什么名字都行。
+            // 要保证的是那张表里这个 ID 的路径指向本次导出的产物 —— 那不是导出器能看见的事
             script.SourceGraph = graphPath;
             script.Actions = ctx.Actions;
             script.EntryIndex = entryIndices[0];

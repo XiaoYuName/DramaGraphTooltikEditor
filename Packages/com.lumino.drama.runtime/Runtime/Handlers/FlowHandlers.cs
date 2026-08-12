@@ -21,8 +21,27 @@ namespace Drama.Runtime.Handlers
             if (a.Options == null || a.Options.Length == 0)
                 return DramaFlowResult.Continue;
 
-            var labels = a.Options.Select(o => ctx.Localization.Resolve(o.Text)).ToArray();
-            var picked = await ctx.Choice.PickAsync(labels, ct);
+            int picked;
+
+            // 读档恢复：把当年选的那个原样喂回去，不弹面板。
+            // 取不到记录（剧本改过、存档是老版本）就退化成正常询问 ——
+            // 恢复中途弹个选项面板很怪，但比走错支线、恢复出错误的现场强
+            if (ctx.Mode == EDramaPlaybackMode.Restoring && ctx.TryTakeRestoredChoice(out var restored))
+            {
+                picked = restored;
+            }
+            else
+            {
+                // 原样把引用交下去，不在这儿查表 —— 面板要挂着等玩家，
+                // 这期间切语言得跟着变，查好的字符串做不到（见 IChoiceView.PickAsync）
+                var labels = a.Options.Select(o => o.Text).ToArray();
+                picked = await ctx.Choice.PickAsync(labels, ct);
+
+                // 记录放在校验之后：非法选择（面板还没实现、被取消）不该进存档路径，
+                // 否则下次恢复会拿一个 -1 去喂，直接把剧情停在这儿
+                if (picked >= 0 && picked < a.Options.Length)
+                    ctx.ReportChoicePicked(picked);
+            }
 
             if (picked < 0 || picked >= a.Options.Length)
                 return DramaFlowResult.Stop;
@@ -50,5 +69,43 @@ namespace Drama.Runtime.Handlers
     {
         protected override UniTask RunAsync(ReceiveTaskAction a, IDramaContext ctx, CancellationToken ct)
             => a.TaskId > 0 ? ctx.Game.ReceiveTaskAsync(a.TaskId, ct) : UniTask.CompletedTask;
+    }
+
+    /// <summary>
+    /// 切换游戏内的真实场景。
+    ///
+    /// <b>Skip / 读档恢复也照切</b> —— 场景是状态不是演出，
+    /// 跳过时更不能让剧情停在上一个场景里；恢复时也得把玩家放回当年那个场景。
+    /// </summary>
+    public sealed class ChangeGameSceneActionHandler : DramaSimpleActionHandler<ChangeGameSceneAction>
+    {
+        protected override UniTask RunAsync(ChangeGameSceneAction a, IDramaContext ctx, CancellationToken ct)
+        {
+            if (a.MapSceneId <= 0 && a.MinSceneId <= 0)
+            {
+                UnityEngine.Debug.LogWarning($"[Drama] #{a.Index} 游戏场景两个 ID 都没填，已跳过");
+                return UniTask.CompletedTask;
+            }
+
+            return ctx.Game?.ChangeGameSceneAsync(a.MapSceneId, a.MinSceneId, ct) ?? UniTask.CompletedTask;
+        }
+    }
+
+    /// <summary>
+    /// 剧情结束并打开一个界面。
+    ///
+    /// 只是把界面名报给宿主，真正打开的时机由宿主的收尾流程决定 —— 原因见
+    /// <see cref="Services.IDramaGameBridge.RequestOpenUIOnEnd"/>。
+    /// 本指令没有后继，执行完剧情就结束了。
+    /// </summary>
+    public sealed class EndUIDramaActionHandler : DramaSimpleActionHandler<EndUIDramaAction>
+    {
+        protected override UniTask RunAsync(EndUIDramaAction a, IDramaContext ctx, CancellationToken ct)
+        {
+            if (!string.IsNullOrEmpty(a.UiPage))
+                ctx.Game?.RequestOpenUIOnEnd(a.UiPage);
+
+            return UniTask.CompletedTask;
+        }
     }
 }

@@ -371,9 +371,121 @@ namespace Drama.Runtime.Tests
             var awaiter = Run(new ChoiceActionHandler(), action);
             var result = awaiter.GetResult();
 
-            CollectionAssert.AreEqual(new[] { "T/A", "T/B" }, m_S.Choice.LastOptions);
             Assert.AreEqual(DramaFlowResult.EKind.Jump, result.Kind);
             Assert.AreEqual(9, result.JumpTarget);
+        }
+
+        [Test]
+        public void 选项_选项文字原样透传给View而不是查好的字符串()
+        {
+            var action = new ChoiceAction
+            {
+                Options = new[]
+                {
+                    new ChoiceAction.Option { Text = new LocalizedRef { Table = "T", Key = "A" }, Next = 5 },
+                    new ChoiceAction.Option { Text = new LocalizedRef { Table = "T", Key = "B" }, Next = 9 },
+                },
+            };
+
+            Run(new ChoiceActionHandler(), action).GetResult();
+
+            CollectionAssert.AreEqual(
+                new[]
+                {
+                    new LocalizedRef { Table = "T", Key = "A" },
+                    new LocalizedRef { Table = "T", Key = "B" },
+                },
+                m_S.Choice.LastOptions);
+
+            // 面板要挂着等玩家，这期间切语言得跟着变 —— 在这一层查表就定死了
+            CollectionAssert.IsEmpty(m_S.Localization.Resolved, "选项文字不该在 Handler 层查表");
+        }
+
+        /// <summary>
+        /// 读档恢复是唯一不问玩家的路径：静默重放走到选项时，
+        /// 要把<b>当年选的那个</b>原样喂回去，弹面板会把重放卡死在这儿。
+        /// </summary>
+        [Test]
+        public void 选项_读档恢复时直接用存档里的选择不弹面板()
+        {
+            m_S.Mode = EDramaPlaybackMode.Restoring;
+            m_S.Context.RestoredChoices.Enqueue(1);
+
+            // 面板真被弹出来就永远等不到人，测试会卡在这儿而不是通过
+            m_S.Choice.HoldUntilPicked = true;
+
+            var action = new ChoiceAction
+            {
+                Options = new[]
+                {
+                    new ChoiceAction.Option { Text = new LocalizedRef { Table = "T", Key = "A" }, Next = 5 },
+                    new ChoiceAction.Option { Text = new LocalizedRef { Table = "T", Key = "B" }, Next = 9 },
+                },
+            };
+
+            var awaiter = Run(new ChoiceActionHandler(), action);
+
+            Assert.IsTrue(awaiter.IsCompleted, "恢复时不该停下来等玩家");
+            Assert.IsNull(m_S.Choice.LastOptions, "恢复时压根不该碰选项面板");
+            Assert.AreEqual(9, awaiter.GetResult().JumpTarget, "要走存档里记的那条支线");
+
+            // 取走的同时要记进本轮路径，否则恢复完再存一次档，前面的选择就丢了
+            CollectionAssert.AreEqual(new[] { 1 }, m_S.Context.PickedChoices);
+        }
+
+        [Test]
+        public void 选项_恢复记录用光时退化成正常询问()
+        {
+            m_S.Mode = EDramaPlaybackMode.Restoring;   // 记录是空的
+            m_S.Choice.PickIndex = 0;
+
+            var action = new ChoiceAction
+            {
+                Options = new[]
+                {
+                    new ChoiceAction.Option { Text = new LocalizedRef { Table = "T", Key = "A" }, Next = 5 },
+                },
+            };
+
+            var result = Run(new ChoiceActionHandler(), action).GetResult();
+
+            // 恢复中途弹个面板是怪，但比走错支线、恢复出错误的现场强
+            Assert.IsNotNull(m_S.Choice.LastOptions, "取不到记录时该退化成问玩家");
+            Assert.AreEqual(5, result.JumpTarget);
+        }
+
+        /// <summary>
+        /// 自动 / 跳过都不能替玩家做选择 —— 选项是分歧点，替他选等于把剧情走向也定了。
+        /// 这一条和绝大多数 AVG 一致：自动播放到选项就停下来等人。
+        ///
+        /// <b>快进也在内</b>：快进是"加速播放"，不是读档 —— 读档走的是
+        /// <see cref="EDramaPlaybackMode.Restoring"/>，见上面那两条。
+        /// </summary>
+        [TestCase(EDramaPlaybackMode.Auto)]
+        [TestCase(EDramaPlaybackMode.Skip)]
+        [TestCase(EDramaPlaybackMode.FastForward)]
+        public void 选项_自动和跳过模式下依然等玩家选(EDramaPlaybackMode mode)
+        {
+            m_S.Mode = mode;
+            m_S.Choice.HoldUntilPicked = true;
+            m_S.Choice.PickIndex = 1;
+
+            var action = new ChoiceAction
+            {
+                Options = new[]
+                {
+                    new ChoiceAction.Option { Text = new LocalizedRef { Table = "T", Key = "A" }, Next = 5 },
+                    new ChoiceAction.Option { Text = new LocalizedRef { Table = "T", Key = "B" }, Next = 9 },
+                },
+            };
+
+            var awaiter = Run(new ChoiceActionHandler(), action);
+            Assert.IsFalse(awaiter.IsCompleted, $"{mode} 模式下也必须停下来等玩家选");
+
+            m_S.Choice.PickLatch.Open();
+
+            Assert.IsTrue(awaiter.IsCompleted);
+            Assert.AreEqual(9, awaiter.GetResult().JumpTarget, "选完要走玩家选的那条支线");
         }
 
         [Test]
@@ -388,6 +500,53 @@ namespace Drama.Runtime.Tests
         {
             RunToEnd(new ReceiveTaskActionHandler(), new ReceiveTaskAction { TaskId = -1 });
             CollectionAssert.IsEmpty(m_S.Game.ReceivedTasks);
+        }
+
+        // ============================================================ 游戏场景
+
+        [Test]
+        public void 游戏场景_转交给业务层()
+        {
+            RunToEnd(new ChangeGameSceneActionHandler(),
+                     new ChangeGameSceneAction { MapSceneId = 10, MinSceneId = 20 });
+
+            CollectionAssert.AreEqual(new[] { (10L, 20L) }, m_S.Game.SceneChanges);
+        }
+
+        [Test]
+        public void 游戏场景_只填小场景也照切()
+        {
+            // 大场景留空 = 留在当前大场景里换小场景，是合法用法
+            RunToEnd(new ChangeGameSceneActionHandler(),
+                     new ChangeGameSceneAction { MapSceneId = -1, MinSceneId = 20 });
+
+            CollectionAssert.AreEqual(new[] { (-1L, 20L) }, m_S.Game.SceneChanges);
+        }
+
+        [Test]
+        public void 游戏场景_两个ID都没填时跳过()
+        {
+            LogAssert_ExpectWarning();
+            RunToEnd(new ChangeGameSceneActionHandler(),
+                     new ChangeGameSceneAction { MapSceneId = -1, MinSceneId = -1 });
+
+            CollectionAssert.IsEmpty(m_S.Game.SceneChanges);
+        }
+
+        // ============================================================ UI结束
+
+        [Test]
+        public void UI结束_把界面名报给宿主而不是当场打开()
+        {
+            RunToEnd(new EndUIDramaActionHandler(), new EndUIDramaAction { UiPage = "MainUI" });
+            CollectionAssert.AreEqual(new[] { "MainUI" }, m_S.Game.RequestedEndUIs);
+        }
+
+        [Test]
+        public void UI结束_没填界面名时等同于普通结束()
+        {
+            RunToEnd(new EndUIDramaActionHandler(), new EndUIDramaAction { UiPage = "" });
+            CollectionAssert.IsEmpty(m_S.Game.RequestedEndUIs);
         }
 
         static void LogAssert_ExpectWarning() =>

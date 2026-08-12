@@ -37,6 +37,8 @@ namespace Drama.Editor.Export
                 case GotoDramaNode n:          ExportGoto(n, ctx); return true;
                 case ReceiveTask n:            ExportReceiveTask(n, ctx); return true;
                 case ChangeDramaNode n:        ExportChoice(n, ctx); return true;
+                case ChangeGameScreenNode n:   ExportChangeGameScene(n, ctx); return true;
+                case EndUIDramaNode n:         ExportEndUI(n, ctx); return true;
 
                 // ------------------------------------------------ 立绘
                 case ActorShowNode n:          ExportActorShow(n, ctx); return true;
@@ -146,6 +148,41 @@ namespace Drama.Editor.Export
             var id = ctx.Port(n, ReceiveTask.TaskID, -1L);
             if (id <= 0) ctx.Warn("任务ID 没填", n);
             ctx.Emit(new ReceiveTaskAction { TaskId = id });
+        }
+
+        /// <summary>
+        /// 游戏场景。切的是宿主真实的游戏场景，不是剧情背景图（那是「切换背景」节点）。
+        ///
+        /// 大场景留空（-1）是合法的，表示"留在当前大场景里只换小场景"；
+        /// 但两个都空就没有任何意义了，拦下来。
+        /// </summary>
+        static void ExportChangeGameScene(ChangeGameScreenNode n, DramaExportContext ctx)
+        {
+            var mapSceneId = ctx.Port(n, ChangeGameScreenNode.MapSceneID, -1L);
+            var minSceneId = ctx.Port(n, ChangeGameScreenNode.MinSceneID, -1L);
+
+            if (mapSceneId <= 0 && minSceneId <= 0)
+                ctx.Warn("游戏场景节点两个 ID 都没填，运行时会跳过这条", n);
+
+            ctx.Emit(new ChangeGameSceneAction
+            {
+                MapSceneId = mapSceneId,
+                MinSceneId = minSceneId,
+            });
+        }
+
+        /// <summary>
+        /// UI结束。和「结束」节点一样是终端（没有输出流程口 → Next 为空 → 流程到此为止），
+        /// 区别是它会额外报一个"结束后打开哪个界面"。
+        /// </summary>
+        static void ExportEndUI(EndUIDramaNode n, DramaExportContext ctx)
+        {
+            var uiPage = ctx.Port(n, EndUIDramaNode.uiPageName, string.Empty);
+
+            if (string.IsNullOrEmpty(uiPage))
+                ctx.Warn("UI结束节点没填界面名，等同于普通「结束」", n);
+
+            ctx.Emit(new EndUIDramaAction { UiPage = uiPage });
         }
 
         /// <summary>

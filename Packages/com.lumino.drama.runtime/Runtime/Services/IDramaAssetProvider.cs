@@ -61,6 +61,25 @@ namespace Drama.Runtime.Services
     public interface IDramaGameBridge
     {
         UniTask ReceiveTaskAsync(long taskId, CancellationToken ct);
+
+        /// <summary>
+        /// 切换游戏内的真实场景。<see cref="ChangeGameSceneAction"/> 用。
+        ///
+        /// <b>要等场景真的切完再返回</b> —— 后面的指令（换背景、出立绘）都是演给新场景看的，
+        /// 不等的话会在旧场景上演一半。宿主那边的转场往往是"发起了就不管"的，
+        /// 实现里需要自己盯着它的完成标志。
+        /// </summary>
+        /// <param name="mapSceneId">大场景 ID，小于等于 0 表示留在当前大场景里只换小场景。</param>
+        UniTask ChangeGameSceneAsync(long mapSceneId, long minSceneId, CancellationToken ct);
+
+        /// <summary>
+        /// 报上"剧情结束之后要打开哪个界面"。<see cref="EndUIDramaAction"/> 用。
+        ///
+        /// <b>实现里只应当记下来，不要当场打开。</b> 调用发生在剧情还没收尾的时候，
+        /// 当场打开会被随后的"关剧情面板 + 还原进剧情前的界面"盖掉。
+        /// 什么时候真正打开由宿主的收尾流程决定。
+        /// </summary>
+        void RequestOpenUIOnEnd(string uiPage);
     }
 
     /// <summary>
