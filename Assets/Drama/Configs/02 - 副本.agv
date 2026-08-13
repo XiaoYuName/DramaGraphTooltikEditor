@@ -23,11 +23,11 @@ MonoBehaviour:
       type: {class: GraphModelImp, ns: Unity.GraphToolkit.Editor.Implementation, asm: UnityEditor.GraphToolkitModule}
       data:
         m_Guid:
-          m_Value0: 167789890072477813
-          m_Value1: 3871785927035783720
+          m_Value0: 5109356417161286829
+          m_Value1: -40039483756900680
         m_HashGuid:
           serializedVersion: 2
-          Hash: 7500ac1a041c5402280a537bc958bb35
+          Hash: add4c2439714e846b80eae394dc071ff
         m_Name: 10001
         m_GraphNodeModels:
         - rid: 3100646108252078086

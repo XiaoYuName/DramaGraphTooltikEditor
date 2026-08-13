@@ -88,6 +88,115 @@ namespace Drama.Doctor
             Debug.Log("[剧情图体检] 诊断报告已复制到剪贴板。");
         }
 
+        // ==================================================== 图 ID 重复
+
+        [Title("图 ID 重复检查")]
+        [PropertyOrder(14)]
+        [InfoBox(
+            "每张 .agv 内部有一个 Graph ID（GraphModelImp 的 m_Guid / m_HashGuid），和文件名、" +
+            "Unity 资产 GUID 都不是一回事。\n" +
+            "【复制 .agv 文件】或【在 Project 里 Ctrl+D 复制】会把这个 ID 一起复制。" +
+            "GraphToolkit 按它索引已打开的图，ID 撞了就只有一张能正常打开，其余打开是空的。\n" +
+            "新建图请一律走 Assets → Create → Drama → 剧情编辑器，不要复制文件。",
+            InfoMessageType.Warning)]
+        [ShowInInspector, ReadOnly, LabelText("结论")]
+        [GUIColor(nameof(DupColor))]
+        string DuplicateState { get; set; } = "-";
+
+        [PropertyOrder(15)]
+        [ShowInInspector, ReadOnly, LabelText("重复分组")]
+        [ListDrawerSettings(IsReadOnly = true, ShowFoldout = true)]
+        List<string> DuplicateGroups { get; set; } = new List<string>();
+
+        bool m_HasDuplicate;
+        Color DupColor => m_HasDuplicate ? new Color(1f, 0.5f, 0.45f) : Color.white;
+
+        [PropertyOrder(16)]
+        [LabelText("我已经关掉所有剧情图窗口")]
+        [Tooltip("图还开着的话，Unity 内存里是旧 ID，保存时会把文件覆盖回去，改了等于白改")]
+        public bool ConfirmGraphWindowsClosed;
+
+        [PropertyOrder(17)]
+        [Button("重新生成重复图的 ID（每组保留第一个）", ButtonSizes.Large)]
+        [EnableIf("@" + nameof(m_HasDuplicate) + " && " + nameof(ConfirmGraphWindowsClosed))]
+        [GUIColor(0.95f, 0.75f, 0.4f)]
+        void RegenerateDuplicateIds()
+        {
+            var groups = Reports.Where(r => !string.IsNullOrEmpty(r.GraphHash))
+                                .GroupBy(r => r.GraphHash)
+                                .Where(g => g.Count() > 1)
+                                .ToList();
+            if (groups.Count == 0) { Debug.Log("[剧情图体检] 没有重复的图 ID。"); return; }
+
+            var targets = groups.SelectMany(g => g.Skip(1)).ToList();
+
+            var ok = EditorUtility.DisplayDialog(
+                "重新生成图 ID",
+                $"将修改这 {targets.Count} 个文件的内部 Graph ID：\n\n" +
+                string.Join("\n", targets.Select(t => "  " + t.Path)) +
+                "\n\n每组保留第一个不动。改动只涉及 GraphModelImp 的 m_Guid / m_HashGuid，" +
+                "节点和连线一个都不碰。\n\n" +
+                "★ 建议先确认这些文件已提交进 git，万一有问题能回滚。\n\n继续吗？",
+                "重新生成", "取消");
+            if (!ok) return;
+
+            var root = Path.GetDirectoryName(Application.dataPath)?.Replace('\\', '/') ?? "";
+            var done = 0;
+            var sb = new StringBuilder();
+
+            foreach (var t in targets)
+            {
+                var full = Path.Combine(root, t.Path);
+                if (!File.Exists(full)) { sb.AppendLine($"✘ 找不到 {t.Path}"); continue; }
+
+                var text = File.ReadAllText(full);
+                var m = s_GraphGuidBlock.Match(text);
+                if (!m.Success) { sb.AppendLine($"✘ {t.Path} 里没找到 GraphModelImp 的 GUID 块"); continue; }
+
+                var (v0, v1, hash) = NewGraphId();
+                var replaced = s_GraphGuidBlock.Replace(text,
+                    mm => mm.Groups[1].Value + v0 + mm.Groups[3].Value + v1 + mm.Groups[5].Value + hash,
+                    1);
+
+                File.WriteAllText(full, replaced);
+                sb.AppendLine($"✔ {t.Path}\n      {t.GraphHash.Substring(0, 8)}… → {hash.Substring(0, 8)}…");
+                done++;
+            }
+
+            AssetDatabase.Refresh();
+            Detail = $"已重新生成 {done} 个图的 ID：\n\n{sb}\n重新扫描确认一下，然后逐张打开验证。";
+            Scan();
+        }
+
+        // .agv 里 GraphModelImp 的 GUID 块。整份文件里只出现一次，定点替换是安全的。
+        static readonly Regex s_GraphGuidBlock = new Regex(
+            @"(class:\s*GraphModelImp[^\r\n]*\r?\n\s*data:\s*\r?\n\s*m_Guid:\s*\r?\n\s*m_Value0:\s*)(-?\d+)" +
+            @"(\s*\r?\n\s*m_Value1:\s*)(-?\d+)" +
+            @"(\s*\r?\n\s*m_HashGuid:\s*\r?\n\s*serializedVersion:\s*\d+\s*\r?\n\s*Hash:\s*)([0-9a-fA-F]+)",
+            RegexOptions.Compiled);
+
+        /// <summary>
+        /// 造一个新的图 ID。
+        /// Hash 字符串 = m_Value0 的小端十六进制 + m_Value1 的小端十六进制 —— 两者必须自洽，
+        /// 只改一个会得到一张自相矛盾的图。
+        /// </summary>
+        static (long v0, long v1, string hash) NewGraphId()
+        {
+            var bytes = Guid.NewGuid().ToByteArray();
+            var v0 = BitConverter.ToInt64(bytes, 0);
+            var v1 = BitConverter.ToInt64(bytes, 8);
+            return (v0, v1, LeHex(v0) + LeHex(v1));
+        }
+
+        static string LeHex(long v)
+        {
+            var b = BitConverter.GetBytes(v);      // 小端机器上就是 LSB 在前
+            if (!BitConverter.IsLittleEndian) Array.Reverse(b);
+            var sb = new StringBuilder(16);
+            foreach (var x in b) sb.Append(x.ToString("x2"));
+            return sb.ToString();
+        }
+
         // ==================================================== 详情
 
         [Title("缺失的类型")]
@@ -129,9 +238,49 @@ namespace Drama.Doctor
                 }
             }
 
+            // ---- 跨文件比对图 ID ----
+            var dupGroups = Reports.Where(r => !string.IsNullOrEmpty(r.GraphHash))
+                                   .GroupBy(r => r.GraphHash)
+                                   .Where(g => g.Count() > 1)
+                                   .ToList();
+
+            m_HasDuplicate = dupGroups.Count > 0;
+            DuplicateGroups = new List<string>();
+
+            var dupPaths = new HashSet<string>();
+            foreach (var g in dupGroups)
+            {
+                DuplicateGroups.Add($"{g.Key.Substring(0, 8)}…  ←  " + string.Join(" / ", g.Select(x => x.Name)));
+                foreach (var r in g.Skip(1)) dupPaths.Add(r.Path);   // 每组第一个视为"原件"
+            }
+
+            DuplicateState = m_HasDuplicate
+                ? $"✘ 有 {dupGroups.Count} 组图共用同一个 ID —— 每组只有一张能打开，其余打开是空的"
+                : "✔ 每张图的 ID 都是唯一的";
+
+            foreach (var r in Reports)
+            {
+                r.ShortId = string.IsNullOrEmpty(r.GraphHash) ? "-" : r.GraphHash.Substring(0, 8);
+                r.Status = r.MissingTypeCount > 0 ? $"缺 {r.MissingTypeCount} 个节点"
+                         : dupPaths.Contains(r.Path) ? "ID 重复"
+                         : "正常";
+            }
+
+            if (m_HasDuplicate)
+            {
+                sb.AppendLine("【图 ID 重复】以下几组共用同一个 Graph ID：");
+                foreach (var s in DuplicateGroups) sb.AppendLine("    " + s);
+                sb.AppendLine();
+                sb.AppendLine("成因：复制 .agv 文件（或在 Project 里 Ctrl+D）会把图内部的 ID 一起复制。");
+                sb.AppendLine("后果：GraphToolkit 按这个 ID 索引已打开的图，撞了就只有一张能打开。");
+                sb.AppendLine("修法：关掉所有剧情图窗口 → 勾上面的确认 → 点「重新生成重复图的 ID」。");
+                sb.AppendLine("以后新建图走 Assets → Create → Drama → 剧情编辑器，别复制文件。");
+                sb.AppendLine();
+            }
+
             if (sb.Length == 0)
             {
-                sb.AppendLine("所有图的节点类型都能正常解析 —— 这台机器可以正常打开它们。");
+                sb.AppendLine("所有图的节点类型都能正常解析，图 ID 也没有重复 —— 这台机器可以正常打开它们。");
                 if (!m_EditorAsmOk || !m_RuntimeAsmOk)
                     sb.AppendLine("\n但上面的程序集状态是红的，先把编译修好再说。");
             }
@@ -201,6 +350,10 @@ namespace Drama.Doctor
                 Path = relPath,
             };
 
+            // 图自己的 ID。复制 .agv 会把它一起复制，两张图撞 ID 就只有一张能打开。
+            var gm = s_GraphGuidBlock.Match(text);
+            rep.GraphHash = gm.Success ? gm.Groups[6].Value.ToLowerInvariant() : "";
+
             var resolvable = new Dictionary<string, bool>();
             var perType = new Dictionary<string, int>();
 
@@ -230,7 +383,7 @@ namespace Drama.Doctor
                 rep.MissingDetail.Add($"{kv.Key}   ×{kv.Value}");
             }
 
-            rep.Status = rep.MissingTypeCount == 0 ? "正常" : $"缺 {rep.MissingTypeCount} 个节点";
+            // Status 由 Scan 统一定（图 ID 是否重复要跨文件比对，这里看不到别的文件）
             rep.Summary = $"引用 {rep.NodeRefCount} 个"
                         + (rep.MissingTypeCount > 0 ? $"，解析失败 {rep.MissingTypeCount} 个" : "，全部可解析");
             return rep;
@@ -289,7 +442,12 @@ namespace Drama.Doctor
             [ReadOnly, LabelText("说明")]
             public string Summary;
 
+            [TableColumnWidth(90, Resizable = false)]
+            [ReadOnly, LabelText("图 ID")]
+            public string ShortId;
+
             [HideInTables] public string Path;
+            [HideInTables] public string GraphHash;
             [HideInTables] public int NodeRefCount;
             [HideInTables] public int MissingTypeCount;
             [HideInTables] public List<string> MissingDetail = new List<string>();
