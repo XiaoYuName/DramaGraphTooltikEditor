@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -197,6 +198,121 @@ namespace Drama.Doctor
             return sb.ToString();
         }
 
+        // ==================================================== 跑飞的节点 / 坏视角
+
+        [Title("跑飞的节点 / 视角")]
+        [PropertyOrder(18)]
+        [InfoBox(
+            "症状：打开图，节点【闪一下就没了】，画布看起来是空的，但 Blackboard 里的变量还在。\n\n" +
+            "成因：图里混进了坐标是天文数字的节点（比如 -1.6e+9，多半是用代码建节点时没设 Position）。" +
+            "打开图时要把它也框进视野，缩放被拉到几千分之一，真实节点全变成亚像素。\n" +
+            "这个坏视角还会被写进文件的 m_LastKnownBounds，所以关掉重开依然是空的。\n\n" +
+            "★ 修完文件后，画布上还要按一次 A 键（Frame All）—— 窗口自己的缩放状态记在布局里，不跟文件走。",
+            InfoMessageType.Warning)]
+        [ShowInInspector, ReadOnly, LabelText("结论")]
+        [GUIColor(nameof(RunawayColor))]
+        string RunawayState { get; set; } = "-";
+
+        bool m_HasRunaway;
+        Color RunawayColor => m_HasRunaway ? new Color(1f, 0.5f, 0.45f) : Color.white;
+
+        [PropertyOrder(19)]
+        [Button("把跑飞的节点拉回来 + 重算视角", ButtonSizes.Large)]
+        [EnableIf(nameof(m_HasRunaway))]
+        [GUIColor(0.95f, 0.75f, 0.4f)]
+        void FixRunawayNodes()
+        {
+            var targets = Reports.Where(r => r.RunawayCount > 0 || r.BadBounds).ToList();
+            if (targets.Count == 0) return;
+
+            var ok = EditorUtility.DisplayDialog(
+                "修复跑飞的节点",
+                $"将修改这 {targets.Count} 个文件：\n\n" +
+                string.Join("\n", targets.Select(t => $"  {t.Name}  跑飞 {t.RunawayCount} 个")) +
+                "\n\n跑飞的节点会移到正常内容右侧（不删除），视角重算成真实范围。\n" +
+                "★ 请先关掉所有剧情图窗口，否则窗口保存时会覆盖回去。\n" +
+                "★ 建议文件已提交 git，方便回滚。\n\n继续吗？",
+                "修复", "取消");
+            if (!ok) return;
+
+            var root = Path.GetDirectoryName(Application.dataPath)?.Replace('\\', '/') ?? "";
+            var sb = new StringBuilder();
+            var done = 0;
+
+            foreach (var t in targets)
+            {
+                var full = Path.Combine(root, t.Path);
+                if (!File.Exists(full)) { sb.AppendLine($"✘ 找不到 {t.Path}"); continue; }
+
+                var text = File.ReadAllText(full);
+
+                // 正常节点的包围盒
+                float minX = float.MaxValue, minY = float.MaxValue, maxX = float.MinValue, maxY = float.MinValue;
+                foreach (Match m in s_Position.Matches(text))
+                {
+                    if (!TryPos(m, out var x, out var y)) continue;
+                    if (IsFar(x, y)) continue;
+                    if (x < minX) minX = x; if (y < minY) minY = y;
+                    if (x > maxX) maxX = x; if (y > maxY) maxY = y;
+                }
+                if (minX == float.MaxValue) { sb.AppendLine($"✘ {t.Name} 全部节点都跑飞了，不敢自动处理"); continue; }
+
+                // 跑飞的挪到正常内容右侧，纵向排开
+                var slot = 0;
+                text = s_Position.Replace(text, m =>
+                {
+                    if (!TryPos(m, out var x, out var y) || !IsFar(x, y)) return m.Value;
+                    var nx = maxX + 400f;
+                    var ny = minY + slot * 260f;
+                    slot++;
+                    return $"m_Position: {{x: {F(nx)}, y: {F(ny)}}}";
+                });
+
+                // 视角重算
+                var bx = minX - 200f;
+                var by = minY - 200f;
+                var bw = (maxX + 1000f) - bx;
+                var bh = (maxY - by) + 400f;
+                text = s_Bounds.Replace(text, m =>
+                    m.Groups[1].Value + F(bx) + m.Groups[3].Value + F(by) +
+                    m.Groups[5].Value + F(bw) + m.Groups[7].Value + F(bh), 1);
+
+                File.WriteAllText(full, text);
+                sb.AppendLine($"✔ {t.Name}  归位 {slot} 个节点，视角 → x={bx:0} y={by:0} w={bw:0} h={bh:0}");
+                done++;
+            }
+
+            AssetDatabase.Refresh();
+            Detail = $"已修复 {done} 个文件：\n\n{sb}\n" +
+                     "★ 现在打开图，如果还是空的，点一下画布按 A 键（Frame All）。\n" +
+                     "  窗口的缩放状态存在编辑器布局里，不跟文件走，只能这样重置。";
+            Scan();
+        }
+
+        static readonly Regex s_Position = new Regex(
+            @"m_Position:\s*\{x:\s*(-?[\d.eE+\-]+),\s*y:\s*(-?[\d.eE+\-]+)\}", RegexOptions.Compiled);
+
+        static readonly Regex s_Bounds = new Regex(
+            @"(m_LastKnownBounds:\s*\r?\n\s*serializedVersion:\s*\d+\s*\r?\n\s*x:\s*)(-?[\d.eE+\-]+)" +
+            @"(\s*\r?\n\s*y:\s*)(-?[\d.eE+\-]+)" +
+            @"(\s*\r?\n\s*width:\s*)(-?[\d.eE+\-]+)" +
+            @"(\s*\r?\n\s*height:\s*)(-?[\d.eE+\-]+)", RegexOptions.Compiled);
+
+        const float FarThreshold = 100000f;
+
+        static bool IsFar(float x, float y) =>
+            Mathf.Abs(x) > FarThreshold || Mathf.Abs(y) > FarThreshold;
+
+        static bool TryPos(Match m, out float x, out float y)
+        {
+            // 一律用不变区域性 —— 中文系统下别让小数点解析出岔子
+            return float.TryParse(m.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out x)
+                 & float.TryParse(m.Groups[2].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out y);
+        }
+
+        /// <summary>写回 YAML 的数字格式。必须用不变区域性，否则中文系统可能写出逗号小数点。</summary>
+        static string F(float v) => v.ToString("0.###", CultureInfo.InvariantCulture);
+
         // ==================================================== 详情
 
         [Title("缺失的类型")]
@@ -258,12 +374,34 @@ namespace Drama.Doctor
                 ? $"✘ 有 {dupGroups.Count} 组图共用同一个 ID —— 每组只有一张能打开，其余打开是空的"
                 : "✔ 每张图的 ID 都是唯一的";
 
+            // ---- 跑飞的节点 / 坏视角 ----
+            var runawayFiles = Reports.Where(r => r.RunawayCount > 0 || r.BadBounds).ToList();
+            m_HasRunaway = runawayFiles.Count > 0;
+            RunawayState = m_HasRunaway
+                ? $"✘ {runawayFiles.Count} 张图有跑飞节点或坏视角 —— 打开会是空的"
+                : "✔ 没有跑飞的节点，视角范围正常";
+
             foreach (var r in Reports)
             {
                 r.ShortId = string.IsNullOrEmpty(r.GraphHash) ? "-" : r.GraphHash.Substring(0, 8);
                 r.Status = r.MissingTypeCount > 0 ? $"缺 {r.MissingTypeCount} 个节点"
+                         : r.RunawayCount > 0 ? $"跑飞 {r.RunawayCount} 个节点"
+                         : r.BadBounds ? "视角被污染"
                          : dupPaths.Contains(r.Path) ? "ID 重复"
                          : "正常";
+            }
+
+            if (m_HasRunaway)
+            {
+                sb.AppendLine("【跑飞的节点 / 坏视角】");
+                foreach (var r in runawayFiles)
+                    sb.AppendLine($"    {r.Name}：跑飞 {r.RunawayCount} 个节点，视角跨度 {r.BoundsSpan:N0}");
+                sb.AppendLine();
+                sb.AppendLine("症状：打开图节点闪一下就没了，画布空白但 Blackboard 里的变量还在。");
+                sb.AppendLine("修法：关掉所有图窗口 → 点上面「把跑飞的节点拉回来 + 重算视角」");
+                sb.AppendLine("      → 打开图后【在画布上按 A 键】（窗口的缩放状态不跟文件走）。");
+                sb.AppendLine("根因：多半是用代码 new 节点后没设 Position，坐标是未初始化的浮点垃圾。");
+                sb.AppendLine();
             }
 
             if (m_HasDuplicate)
@@ -353,6 +491,21 @@ namespace Drama.Doctor
             // 图自己的 ID。复制 .agv 会把它一起复制，两张图撞 ID 就只有一张能打开。
             var gm = s_GraphGuidBlock.Match(text);
             rep.GraphHash = gm.Success ? gm.Groups[6].Value.ToLowerInvariant() : "";
+
+            // 坐标是天文数字的节点 —— 会把画布缩放拉爆，看起来就是空图
+            foreach (Match pm in s_Position.Matches(text))
+                if (TryPos(pm, out var px, out var py) && IsFar(px, py))
+                    rep.RunawayCount++;
+
+            // 被污染的视角（会跟着文件走，关掉重开依然是坏的）
+            var bm = s_Bounds.Match(text);
+            if (bm.Success
+                && float.TryParse(bm.Groups[6].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var bw)
+                && float.TryParse(bm.Groups[8].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var bh))
+            {
+                rep.BoundsSpan = Mathf.Max(Mathf.Abs(bw), Mathf.Abs(bh));
+                rep.BadBounds = rep.BoundsSpan > FarThreshold;
+            }
 
             var resolvable = new Dictionary<string, bool>();
             var perType = new Dictionary<string, int>();
@@ -448,6 +601,9 @@ namespace Drama.Doctor
 
             [HideInTables] public string Path;
             [HideInTables] public string GraphHash;
+            [HideInTables] public int RunawayCount;
+            [HideInTables] public bool BadBounds;
+            [HideInTables] public float BoundsSpan;
             [HideInTables] public int NodeRefCount;
             [HideInTables] public int MissingTypeCount;
             [HideInTables] public List<string> MissingDetail = new List<string>();
