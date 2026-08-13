@@ -329,6 +329,57 @@ namespace Drama.Runtime.Tests
         public void ReleaseAll() => ReleaseAllCalls++;
     }
 
+    public sealed class MockCG : IDramaCG
+    {
+        /// <summary>台上那张 CG 的变换目标。<see cref="ShowAsync"/> 之前是 null，Handler 应当跳过。</summary>
+        public Transform Root { get; private set; }
+
+        public readonly List<long> Shown = new List<long>();
+        public int HideCalls { get; private set; }
+        public int CompleteAllCalls { get; private set; }
+        public int ClearCalls { get; private set; }
+        public float LastDuration;
+        public readonly List<string> AnimatorCalls = new List<string>();
+
+        /// <summary>EditMode 测试会把 Root 建到当前打开的场景里，测完要收拾干净。</summary>
+        public void DestroyCreatedObjects()
+        {
+            if (Root != null) Object.DestroyImmediate(Root.gameObject);
+            Root = null;
+        }
+
+        public UniTask ShowAsync(long cgId, float duration, Ease ease, CancellationToken ct)
+        {
+            Shown.Add(cgId);
+            LastDuration = duration;
+
+            if (Root == null) Root = new GameObject("MockCG").transform;
+            return UniTask.CompletedTask;
+        }
+
+        public UniTask HideAsync(float duration, Ease ease, CancellationToken ct)
+        {
+            HideCalls++;
+            LastDuration = duration;
+            return UniTask.CompletedTask;
+        }
+
+        public void SetAnimatorBool(string parameterName, bool value) =>
+            AnimatorCalls.Add($"bool:{parameterName}={value}");
+
+        public void SetAnimatorInt(string parameterName, int value) =>
+            AnimatorCalls.Add($"int:{parameterName}={value}");
+
+        public void SetAnimatorFloat(string parameterName, float value) =>
+            AnimatorCalls.Add($"float:{parameterName}={value}");
+
+        public void SetAnimatorTrigger(string parameterName, bool reset) =>
+            AnimatorCalls.Add($"trigger:{parameterName}{(reset ? ":reset" : "")}");
+
+        public void CompleteAllTweens() => CompleteAllCalls++;
+        public void Clear() => ClearCalls++;
+    }
+
     public sealed class MockGameBridge : IDramaGameBridge
     {
         public readonly List<long> ReceivedTasks = new List<long>();
@@ -357,6 +408,7 @@ namespace Drama.Runtime.Tests
         public readonly MockDialogueView Dialogue = new MockDialogueView();
         public readonly MockChoiceView Choice = new MockChoiceView();
         public readonly MockActorStage Actors = new MockActorStage();
+        public readonly MockCG CG = new MockCG();
         public readonly MockScreen Screen = new MockScreen();
         public readonly MockBackground Background = new MockBackground();
         public readonly MockLocalization Localization = new MockLocalization();
@@ -371,6 +423,7 @@ namespace Drama.Runtime.Tests
             Context.Dialogue = Dialogue;
             Context.Choice = Choice;
             Context.Actors = Actors;
+            Context.CG = CG;
             Context.Screen = Screen;
             Context.Background = Background;
             Context.Localization = Localization;

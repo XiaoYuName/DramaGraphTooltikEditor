@@ -16,7 +16,11 @@ namespace Drama.Runtime.Tests
         public void SetUp() => m_S = new MockServices();
 
         [TearDown]
-        public void TearDown() => m_S.Actors.DestroyCreatedObjects();
+        public void TearDown()
+        {
+            m_S.Actors.DestroyCreatedObjects();
+            m_S.CG.DestroyCreatedObjects();
+        }
 
         /// <summary>跑一个 Handler，返回它的 awaiter（可能还没完成）。</summary>
         UniTask<DramaFlowResult>.Awaiter Run(IDramaActionHandler handler, DramaAction action,
@@ -391,6 +395,99 @@ namespace Drama.Runtime.Tests
             Assert.DoesNotThrow(() =>
                 RunToEnd(new ActorAnimTriggerActionHandler(),
                          new ActorAnimTriggerAction { ActorId = 999, ParameterName = "Wave" }));
+        }
+
+        // ============================================================ CG
+
+        [Test]
+        public void CG_出现把ID和时长交给CG层()
+        {
+            RunToEnd(new CGShowActionHandler(),
+                     new CGShowAction { CgId = 500, DurationSeconds = 0.6f });
+
+            CollectionAssert.AreEqual(new long[] { 500 }, m_S.CG.Shown);
+            Assert.AreEqual(0.6f, m_S.CG.LastDuration, 1e-5f);
+        }
+
+        [Test]
+        public void CG_没填ID时跳过()
+        {
+            LogAssert_ExpectWarning();
+            RunToEnd(new CGShowActionHandler(), new CGShowAction { CgId = -1 });
+
+            CollectionAssert.IsEmpty(m_S.CG.Shown);
+        }
+
+        [TestCase(EDramaPlaybackMode.Skip)]
+        [TestCase(EDramaPlaybackMode.Restoring)]
+        public void CG_跳过和恢复时显隐时长归零(EDramaPlaybackMode mode)
+        {
+            m_S.Mode = mode;
+
+            // CG 该出现还是要出现（那是状态），只是不放动画
+            RunToEnd(new CGShowActionHandler(),
+                     new CGShowAction { CgId = 500, DurationSeconds = 2f });
+
+            CollectionAssert.AreEqual(new long[] { 500 }, m_S.CG.Shown);
+            Assert.AreEqual(0f, m_S.CG.LastDuration);
+        }
+
+        /// <summary>
+        /// CG 没出现就写变换 / 抖动 / 小动作是剧本的顺序问题，
+        /// 运行时静默跳过即可，不该让整段剧情停下来。
+        /// </summary>
+        [Test]
+        public void CG_不在台上时变换类指令静默跳过()
+        {
+            Assert.IsNull(m_S.CG.Root, "前提：还没 Show 过");
+
+            Assert.DoesNotThrow(() =>
+            {
+                RunToEnd(new CGMoveActionHandler(), new CGMoveAction { Position = Vector2.one });
+                RunToEnd(new CGScaleActionHandler(), new CGScaleAction { Scale = Vector3.one });
+                RunToEnd(new CGRotateActionHandler(), new CGRotateAction());
+                RunToEnd(new CGOffsetMoveActionHandler(), new CGOffsetMoveAction());
+                RunToEnd(new CGShakeActionHandler(), new CGShakeAction());
+                RunToEnd(new CGVibrateActionHandler(), new CGVibrateAction());
+            });
+        }
+
+        [Test]
+        public void CG_变换作用在CG层的Root上()
+        {
+            RunToEnd(new CGShowActionHandler(), new CGShowAction { CgId = 500 });
+
+            // 时长为 0 时是直接写值，不起 Tween
+            RunToEnd(new CGMoveActionHandler(),
+                     new CGMoveAction { Position = new Vector2(3f, 4f) });
+
+            Assert.AreEqual(new Vector3(3f, 4f, 0f), m_S.CG.Root.localPosition);
+        }
+
+        [Test]
+        public void CG_Animator四种参数各自打到对应方法()
+        {
+            RunToEnd(new CGAnimBoolActionHandler(),
+                     new CGAnimBoolAction { ParameterName = "IsShy", Value = true });
+            RunToEnd(new CGAnimIntActionHandler(),
+                     new CGAnimIntAction { ParameterName = "Face", Value = 2 });
+            RunToEnd(new CGAnimFloatActionHandler(),
+                     new CGAnimFloatAction { ParameterName = "Blend", Value = 0.25f });
+            RunToEnd(new CGAnimTriggerActionHandler(),
+                     new CGAnimTriggerAction { ParameterName = "Blink" });
+            RunToEnd(new CGAnimTriggerActionHandler(),
+                     new CGAnimTriggerAction { ParameterName = "Blink", Reset = true });
+
+            CollectionAssert.AreEqual(
+                new[]
+                {
+                    "bool:IsShy=True",
+                    "int:Face=2",
+                    "float:Blend=0.25",
+                    "trigger:Blink",
+                    "trigger:Blink:reset",
+                },
+                m_S.CG.AnimatorCalls);
         }
 
         // ============================================================ 其余 Handler

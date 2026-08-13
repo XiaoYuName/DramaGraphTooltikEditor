@@ -6,7 +6,9 @@ namespace Drama.Editor
 {
     [System.Serializable]
     [Node("变换","Assets/Drama/Assets/Position.png","位置")]
-    [UseWithContext(typeof(ActorTransformNode),typeof(ScreenTransformNode))]
+    // 同一个块在不同容器下产出不同的指令（立绘位移 / 背景位移 / CG 位移），
+    // 是容器决定语义 —— 见各自导出器里的注释
+    [UseWithContext(typeof(ActorTransformNode),typeof(ScreenTransformNode),typeof(CGTransformNode))]
     public class PositionBlockNode : BlockNode
     {
         public const string ActorPositionName = "actorPosition";

@@ -98,6 +98,23 @@ namespace Drama.Runtime.Tests
         }
 
         [Test]
+        public void CG预载只收出现那条的ID()
+        {
+            var keys = DramaAssetKeys.Collect(Make(
+                new CGShowAction { CgId = 500 },
+                new CGShowAction { CgId = 501 },
+                new CGShowAction { CgId = 500 },
+                // 没填 ID 的不该被收
+                new CGShowAction { CgId = -1 },
+                // 其余 CG 指令作用在"当前那张"上，没有可收的 ID
+                new CGMoveAction(),
+                new CGShakeAction(),
+                new CGAnimTriggerAction { ParameterName = "Blink" }));
+
+            CollectionAssert.AreEquivalent(new long[] { 500, 501 }, keys.CgIds);
+        }
+
+        [Test]
         public void 立绘预载不收哨兵角色()
         {
             var keys = DramaAssetKeys.Collect(Make(

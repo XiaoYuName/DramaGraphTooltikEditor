@@ -6,7 +6,7 @@ namespace Drama.Editor
 {
     [System.Serializable]
     [Node("变换","Assets/Drama/Assets/Scale.png","缩放")]
-    [UseWithContext(typeof(ActorTransformNode),typeof(ScreenTransformNode))]
+    [UseWithContext(typeof(ActorTransformNode),typeof(ScreenTransformNode),typeof(CGTransformNode))]
     public class ScaleBlockNode  : BlockNode
     {
         public const string ActorScaleName = "actorScale";

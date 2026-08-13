@@ -83,6 +83,22 @@ namespace Drama.Editor
     }
 
     /// <summary>
+    /// CG 的显隐方式。
+    ///
+    /// 只有"瞬时 / 带动画"两个值，方向由节点自己决定（CG出现就是进、CG关闭就是出）。
+    /// 刻意不复用 <see cref="EActorShowKind"/>：那个有 Show/Hide/FadeIn/FadeOut 四个值，
+    /// 挂在「CG出现」上就能选出"淡出"这种没有意义的组合。
+    /// </summary>
+    public enum ECGShowKind
+    {
+        /// <summary>瞬时，无动画。</summary>
+        Instant = 0,
+
+        /// <summary>淡入 / 淡出。</summary>
+        Fade = 1,
+    }
+
+    /// <summary>
     /// Animator 的 Trigger 怎么用。
     ///
     /// 之所以要有「重置」：Trigger 被 SetTrigger 之后如果没有任何转换条件消费掉它，

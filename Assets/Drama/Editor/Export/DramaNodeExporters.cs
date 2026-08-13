@@ -57,6 +57,17 @@ namespace Drama.Editor.Export
                 case ActorOffsetMoveNode n:    ExportActorOffsetMove(n, ctx); return true;
                 case ActorOffsetShakeNode n:   ExportActorShake(n, ctx); return true;
 
+                // ------------------------------------------------ CG
+                case CGShowNode n:             ExportCGShow(n, ctx); return true;
+                case CGHideNode n:             ExportCGHide(n, ctx); return true;
+                case CGTransformNode n:        ExportCGTransform(n, ctx); return true;
+                case CGShakeNode n:            ExportCGShake(n, ctx); return true;
+                case CGOffsetMoveNode n:       ExportCGOffsetMove(n, ctx); return true;
+                case CGAnimSetBoolNode n:      ExportCGAnimBool(n, ctx); return true;
+                case CGAnimSetIntNode n:       ExportCGAnimInt(n, ctx); return true;
+                case CGAnimSetFloatNode n:     ExportCGAnimFloat(n, ctx); return true;
+                case CGAnimSetTriggerNode n:   ExportCGAnimTrigger(n, ctx); return true;
+
                 // ------------------------------------------------ 场景 / 音频
                 case ScreenEffNode n:          ExportScreenEff(n, ctx); return true;
                 case ScreenTransformNode n:    ExportScreenTransform(n, ctx); return true;
@@ -556,6 +567,175 @@ namespace Drama.Editor.Export
                 }
             }
         }
+
+        // ==========================================================  CG
+
+        // CG 是单槽位，所以这一族全都不带 ID —— 变换 / 抖动 / Animator 说的都是"当前那张"。
+        // 三个容器装的是和立绘、背景【同一批】块，又一次说明是容器决定语义、不是块。
+
+        static void ExportCGShow(CGShowNode n, DramaExportContext ctx)
+        {
+            var cgId = ctx.Option(n, CGShowNode.k_CgId, -1L);
+            if (cgId <= 0) ctx.Warn("CG出现没填 CG ID，运行时会跳过这条", n);
+
+            ctx.Emit(new CGShowAction
+            {
+                CgId            = cgId,
+                DurationSeconds = CGDurationSeconds(n, ctx),
+                Ease            = ctx.Option(n, CGVisibilityNodeBase.k_Ease, DG.Tweening.Ease.Linear),
+            });
+        }
+
+        static void ExportCGHide(CGHideNode n, DramaExportContext ctx) =>
+            ctx.Emit(new CGHideAction
+            {
+                DurationSeconds = CGDurationSeconds(n, ctx),
+                Ease            = ctx.Option(n, CGVisibilityNodeBase.k_Ease, DG.Tweening.Ease.Linear),
+            });
+
+        /// <summary>
+        /// CG 显隐的时长。时长端口只在「淡入淡出」时才存在，瞬时方式导出成 0 ——
+        /// 运行时就是靠"时长为 0"表达瞬时的，不需要额外的方式字段。编辑器里填的是毫秒。
+        /// </summary>
+        static float CGDurationSeconds(CGVisibilityNodeBase n, DramaExportContext ctx) =>
+            n.IsAnimated() ? ctx.Port(n, CGVisibilityNodeBase.k_Duration, 600f) / 1000f : 0f;
+
+        static void ExportCGTransform(CGTransformNode n, DramaExportContext ctx)
+        {
+            if (n.BlockCount == 0) { ctx.Warn("CG变换节点里没有变换块", n); return; }
+
+            foreach (var block in n.BlockNodes)
+            {
+                switch (block)
+                {
+                    case PositionBlockNode p:
+                        ctx.Emit(new CGMoveAction
+                        {
+                            Position        = ctx.Port(p, PositionBlockNode.ActorPositionName, Vector2.zero),
+                            DurationSeconds = ctx.Port(p, PositionBlockNode.Duration, 0f),
+                            Ease            = ctx.Port(p, PositionBlockNode.ease, DG.Tweening.Ease.Linear),
+                        });
+                        break;
+
+                    case RotationBlockNode r:
+                        ctx.Emit(new CGRotateAction
+                        {
+                            Rotation        = ctx.Port(r, RotationBlockNode.ActorRotationName, Vector3.zero),
+                            DurationSeconds = ctx.Port(r, RotationBlockNode.Duration, 0f),
+                            Ease            = ctx.Port(r, RotationBlockNode.ease, DG.Tweening.Ease.Linear),
+                        });
+                        break;
+
+                    case ScaleBlockNode s:
+                        ctx.Emit(new CGScaleAction
+                        {
+                            Scale           = ctx.Port(s, ScaleBlockNode.ActorScaleName, Vector3.one),
+                            DurationSeconds = ctx.Port(s, ScaleBlockNode.Duration, 0f),
+                            Ease            = ctx.Port(s, ScaleBlockNode.ease, DG.Tweening.Ease.Linear),
+                        });
+                        break;
+
+                    default:
+                        ctx.Warn($"CG变换节点不支持「{block.GetType().Name}」块，已跳过", n);
+                        break;
+                }
+            }
+        }
+
+        static void ExportCGOffsetMove(CGOffsetMoveNode n, DramaExportContext ctx)
+        {
+            if (n.BlockCount == 0) { ctx.Warn("CG动作节点里没有小动作块", n); return; }
+
+            foreach (var block in n.BlockNodes)
+            {
+                if (!(block is OffsetMoveNode m))
+                {
+                    ctx.Warn($"不认识的块「{block.GetType().Name}」，已跳过", n);
+                    continue;
+                }
+
+                ctx.Emit(new CGOffsetMoveAction
+                {
+                    Offset          = ctx.Port(m, OffsetMoveNode.Offset, Vector3.zero),
+                    DurationSeconds = ctx.Port(m, OffsetMoveNode.Duration, 0f),
+                    Ease            = ctx.Port(m, OffsetMoveNode.ease, DG.Tweening.Ease.Linear),
+                    LoopCount       = ctx.Port(m, OffsetMoveNode.count, 1),
+                    LoopType        = ctx.Port(m, OffsetMoveNode.loopType, DG.Tweening.LoopType.Restart),
+                });
+            }
+        }
+
+        static void ExportCGShake(CGShakeNode n, DramaExportContext ctx)
+        {
+            if (n.BlockCount == 0) { ctx.Warn("CG抖动节点里没有块", n); return; }
+
+            foreach (var block in n.BlockNodes)
+            {
+                switch (block)
+                {
+                    case ShakeNode s:
+                        ctx.Emit(new CGShakeAction
+                        {
+                            Amplitude       = ctx.Port(s, ShakeNode.Amplitude, 0.5f),
+                            Axis            = MapAxis(ctx.Port(s, ShakeNode.ShakeAxis, Drama.Editor.ShakeAxis.PositionXY)),
+                            DurationSeconds = ctx.Port(s, ShakeNode.Duration, 0.3f),
+                            RestoreOnEnd    = ctx.Port(s, ShakeNode.RestoreOnEnd, true),
+                        });
+                        break;
+
+                    case VibrateNode v:
+                        ctx.Emit(new CGVibrateAction
+                        {
+                            Amplitude       = ctx.Port(v, VibrateNode.Amplitude, 0.5f),
+                            Axis            = MapAxis(ctx.Port(v, VibrateNode.ShakeAxis, Drama.Editor.ShakeAxis.PositionXY)),
+                            IntervalSeconds = ctx.Port(v, VibrateNode.Interval, 0.3f),
+                            SmoothSpeed     = ctx.Port(v, VibrateNode.SmoothSpeed, 5f),
+                            DurationSeconds = ctx.Port(v, VibrateNode.Duration, 0.3f),
+                            RestoreOnEnd    = ctx.Port(v, VibrateNode.RestoreOnEnd, true),
+                        });
+                        break;
+
+                    default:
+                        ctx.Warn($"不认识的块「{block.GetType().Name}」，已跳过", n);
+                        break;
+                }
+            }
+        }
+
+        static string CGAnimParameterName(CGAnimParameterNode n, DramaExportContext ctx)
+        {
+            var name = ctx.Port(n, CGAnimParameterNode.ParameterName, string.Empty);
+            if (string.IsNullOrEmpty(name)) ctx.Warn("CG Animator 参数名没填，运行时会被跳过", n);
+            return name;
+        }
+
+        static void ExportCGAnimBool(CGAnimSetBoolNode n, DramaExportContext ctx) =>
+            ctx.Emit(new CGAnimBoolAction
+            {
+                ParameterName = CGAnimParameterName(n, ctx),
+                Value         = ctx.Port(n, CGAnimSetBoolNode.Value, true),
+            });
+
+        static void ExportCGAnimInt(CGAnimSetIntNode n, DramaExportContext ctx) =>
+            ctx.Emit(new CGAnimIntAction
+            {
+                ParameterName = CGAnimParameterName(n, ctx),
+                Value         = ctx.Port(n, CGAnimSetIntNode.Value, 0),
+            });
+
+        static void ExportCGAnimFloat(CGAnimSetFloatNode n, DramaExportContext ctx) =>
+            ctx.Emit(new CGAnimFloatAction
+            {
+                ParameterName = CGAnimParameterName(n, ctx),
+                Value         = ctx.Port(n, CGAnimSetFloatNode.Value, 0f),
+            });
+
+        static void ExportCGAnimTrigger(CGAnimSetTriggerNode n, DramaExportContext ctx) =>
+            ctx.Emit(new CGAnimTriggerAction
+            {
+                ParameterName = CGAnimParameterName(n, ctx),
+                Reset         = ctx.Option(n, CGAnimSetTriggerNode.k_Mode, EAnimTriggerMode.Set) == EAnimTriggerMode.Reset,
+            });
 
         // ==========================================================  场景 / 音频
 

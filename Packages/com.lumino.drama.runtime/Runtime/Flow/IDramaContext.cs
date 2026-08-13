@@ -62,6 +62,7 @@ namespace Drama.Runtime.Flow
         IDialogueView       Dialogue     { get; }
         IChoiceView         Choice       { get; }
         IActorStage         Actors       { get; }
+        IDramaCG            CG           { get; }
         IDramaScreen        Screen       { get; }
         IDramaBackground    Background   { get; }
         IDramaLocalization  Localization { get; }

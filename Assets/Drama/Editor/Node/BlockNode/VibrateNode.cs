@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Drama.Editor
 {
     [System.Serializable]
-    [UseWithContext(typeof(ActorOffsetShakeNode))]
+    [UseWithContext(typeof(ActorOffsetShakeNode),typeof(CGShakeNode))]
     [Node("命令/变换","Assets/Drama/Assets/VibrateIcon.png","震动")]
     public class VibrateNode : BlockNode
     {

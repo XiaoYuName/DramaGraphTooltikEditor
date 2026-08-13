@@ -583,6 +583,168 @@ namespace Drama.Runtime
 
     #endregion
 
+    #region CG
+
+    // CG = 全屏的一张大图（本工程是全屏 Live2D）。它和立绘的关系不是"另一种立绘"：
+    //   · 寻址不同 —— CG 有自己的配置表，一张双人 CG 属于"哪个角色"是答不上来的
+    //   · 单槽位   —— 同时只有一张，所以这一族指令全都不需要 ID
+    //   · 进入时自动把立绘整层藏掉，退出时恢复（照原工程的做法，漏配一条就穿帮）
+    //
+    // 参数结构刻意和立绘那套保持一致（位置/缩放/旋转/小动作/抖动/震动），
+    // 图里也是复用同一批 Block —— 是容器决定语义，不是块。
+
+    /// <summary>
+    /// CG 出现。<b>时长为 0 就是瞬时显示</b>。
+    ///
+    /// 不像 <see cref="ActorShowAction"/> 那样带个"显示方式"枚举：
+    /// 那边一条指令要表达显示/隐藏/淡入/淡出四种组合，这边显示和隐藏是两条指令，
+    /// 剩下的"瞬时还是带动画"用时长就够了。
+    /// </summary>
+    [Serializable]
+    public sealed class CGShowAction : DramaAction
+    {
+        public override string Kind => "CG出现";
+        [LabelText("CG ID")]    public long CgId = -1;
+        [LabelText("时长(秒)")] public float DurationSeconds;
+        [LabelText("缓动")]     public Ease Ease = Ease.Linear;
+        public override string Summary => $"CG出现 · {CgId}";
+    }
+
+    /// <summary>CG 关闭，同时把立绘层恢复回来。时长为 0 就是瞬时。</summary>
+    [Serializable]
+    public sealed class CGHideAction : DramaAction
+    {
+        public override string Kind => "CG关闭";
+        [LabelText("时长(秒)")] public float DurationSeconds;
+        [LabelText("缓动")]     public Ease Ease = Ease.Linear;
+        public override string Summary => "CG关闭";
+    }
+
+    /// <summary>CG 位移。全屏 CG 默认满屏居中，这里给的是在此基础上的偏移。</summary>
+    [Serializable]
+    public sealed class CGMoveAction : DramaAction
+    {
+        public override string Kind => "CG位置";
+        [LabelText("目标位置")] public Vector2 Position;
+        [LabelText("时长(秒)")] public float DurationSeconds;
+        [LabelText("缓动")]     public Ease Ease = Ease.Linear;
+        public override string Summary => $"CG位置 · → {Position}";
+    }
+
+    /// <summary>CG 缩放。做"推近"这类镜头感用。</summary>
+    [Serializable]
+    public sealed class CGScaleAction : DramaAction
+    {
+        public override string Kind => "CG缩放";
+        /// <summary>倍率，1 = 原始大小。默认给 one 而不是 zero —— 漏填会把 CG 缩成看不见。</summary>
+        [LabelText("目标缩放")] public Vector3 Scale = Vector3.one;
+        [LabelText("时长(秒)")] public float DurationSeconds;
+        [LabelText("缓动")]     public Ease Ease = Ease.Linear;
+        public override string Summary => $"CG缩放 · → {Scale}";
+    }
+
+    /// <summary>CG 旋转（欧拉角）。</summary>
+    [Serializable]
+    public sealed class CGRotateAction : DramaAction
+    {
+        public override string Kind => "CG旋转";
+        [LabelText("目标角度")] public Vector3 Rotation;
+        [LabelText("时长(秒)")] public float DurationSeconds;
+        [LabelText("缓动")]     public Ease Ease = Ease.Linear;
+        public override string Summary => $"CG旋转 · → {Rotation}";
+    }
+
+    /// <summary>
+    /// CG 相对当前位置做偏移小动作（可循环）。
+    /// 无限循环 + 往复就是缓慢平移的呼吸感镜头，语义见 <see cref="ActorOffsetMoveAction"/>。
+    /// </summary>
+    [Serializable]
+    public sealed class CGOffsetMoveAction : DramaAction
+    {
+        public override string Kind => "CG小动作";
+        [LabelText("偏移")]     public Vector3 Offset;
+        [LabelText("时长(秒)")] public float DurationSeconds;
+        [LabelText("缓动")]     public Ease Ease = Ease.Linear;
+        [LabelText("次数")]     public int LoopCount = 1;
+        [LabelText("循环方式")] public LoopType LoopType = LoopType.Restart;
+        public override string Summary => $"CG小动作 · 偏移{Offset}";
+    }
+
+    /// <summary>CG 抖动（硬抖）。</summary>
+    [Serializable]
+    public sealed class CGShakeAction : DramaAction
+    {
+        public override string Kind => "CG抖动";
+        [LabelText("振幅")]     public float Amplitude = 0.5f;
+        [LabelText("轴")]       public EShakeAxis Axis;
+        [LabelText("时长(秒)")] public float DurationSeconds = 0.3f;
+        [LabelText("结束归位")] public bool RestoreOnEnd = true;
+        public override string Summary => $"CG抖动 · {DurationSeconds:0.##}s";
+    }
+
+    /// <summary>CG 震动（柔震）。</summary>
+    [Serializable]
+    public sealed class CGVibrateAction : DramaAction
+    {
+        public override string Kind => "CG震动";
+        [LabelText("振幅")]     public float Amplitude = 0.5f;
+        [LabelText("轴")]       public EShakeAxis Axis;
+        [LabelText("间隔(秒)")] public float IntervalSeconds = 0.3f;
+        [LabelText("时长(秒)")] public float DurationSeconds = 0.3f;
+        [LabelText("平滑速度")] public float SmoothSpeed = 5f;
+        [LabelText("结束归位")] public bool RestoreOnEnd = true;
+        public override string Summary => $"CG震动 · {DurationSeconds:0.##}s";
+    }
+
+    /// <summary>
+    /// 设置 CG 模型 Animator 的参数。CG 是全屏 Live2D，表情 / 动作走 Unity 状态机。
+    ///
+    /// 和立绘那四条的唯一区别是<b>没有 ID</b>：CG 单槽位，加了也只能拿来校验、不能拿来寻址。
+    /// 拆成四条而不是一条带类型字段的，理由同 <see cref="ActorAnimBoolAction"/>。
+    /// </summary>
+    [Serializable]
+    public sealed class CGAnimBoolAction : DramaAction
+    {
+        public override string Kind => "CG Animator Bool";
+        [LabelText("参数名")] public string ParameterName;
+        [LabelText("值")]     public bool Value;
+        public override string Summary => $"CG Animator · {ParameterName} = {Value}";
+    }
+
+    /// <inheritdoc cref="CGAnimBoolAction"/>
+    [Serializable]
+    public sealed class CGAnimIntAction : DramaAction
+    {
+        public override string Kind => "CG Animator Int";
+        [LabelText("参数名")] public string ParameterName;
+        [LabelText("值")]     public int Value;
+        public override string Summary => $"CG Animator · {ParameterName} = {Value}";
+    }
+
+    /// <inheritdoc cref="CGAnimBoolAction"/>
+    [Serializable]
+    public sealed class CGAnimFloatAction : DramaAction
+    {
+        public override string Kind => "CG Animator Float";
+        [LabelText("参数名")] public string ParameterName;
+        [LabelText("值")]     public float Value;
+        public override string Summary => $"CG Animator · {ParameterName} = {Value}";
+    }
+
+    /// <inheritdoc cref="CGAnimBoolAction"/>
+    [Serializable]
+    public sealed class CGAnimTriggerAction : DramaAction
+    {
+        public override string Kind => "CG Animator Trigger";
+        [LabelText("参数名")] public string ParameterName;
+        /// <summary>true = ResetTrigger，撤掉一个还没被状态机消费掉的触发。</summary>
+        [LabelText("重置")]   public bool Reset;
+        public override string Summary =>
+            Reset ? $"CG Animator · 重置 {ParameterName}" : $"CG Animator · 触发 {ParameterName}";
+    }
+
+    #endregion
+
     #region 场景 / 演出
 
     /// <summary>全屏转场（淡入淡出 / 百叶窗 / 竖条）。</summary>

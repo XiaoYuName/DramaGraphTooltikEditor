@@ -54,6 +54,20 @@ namespace Drama.Runtime.Handlers
             registry.Register(new ActorAnimFloatActionHandler());
             registry.Register(new ActorAnimTriggerActionHandler());
 
+            // ---- CG
+            registry.Register(new CGShowActionHandler());
+            registry.Register(new CGHideActionHandler());
+            registry.Register(new CGMoveActionHandler());
+            registry.Register(new CGScaleActionHandler());
+            registry.Register(new CGRotateActionHandler());
+            registry.Register(new CGOffsetMoveActionHandler());
+            registry.Register(new CGShakeActionHandler());
+            registry.Register(new CGVibrateActionHandler());
+            registry.Register(new CGAnimBoolActionHandler());
+            registry.Register(new CGAnimIntActionHandler());
+            registry.Register(new CGAnimFloatActionHandler());
+            registry.Register(new CGAnimTriggerActionHandler());
+
             // 至此所有 XxxAction 都有 Handler 了。加新指令时记得回来登记一条，
             // 漏了也不会播到一半才炸 —— DramaHandlerRegistry.FindMissing 会在播放前报出来。
             // 漏了也不会播到一半才炸 —— DramaHandlerRegistry.FindMissing 会在播放前报出来

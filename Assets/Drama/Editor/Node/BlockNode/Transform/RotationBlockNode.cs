@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Drama.Editor
 {
     [Node("变换","Assets/Drama/Assets/Rotation.png","旋转")]
-    [UseWithContext(typeof(ActorTransformNode),typeof(ScreenTransformNode))]
+    [UseWithContext(typeof(ActorTransformNode),typeof(ScreenTransformNode),typeof(CGTransformNode))]
     public class RotationBlockNode : BlockNode
     {
         public const string ActorRotationName = "actorRotation";

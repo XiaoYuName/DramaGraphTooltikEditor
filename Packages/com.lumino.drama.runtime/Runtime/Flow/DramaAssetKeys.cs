@@ -54,6 +54,9 @@ namespace Drama.Runtime.Flow
 
         public readonly IReadOnlyCollection<long> BackgroundIds;
 
+        /// <summary>剧本里用到的 CG。全屏 Live2D 模型不小，不预载切 CG 时会卡一下。</summary>
+        public readonly IReadOnlyCollection<long> CgIds;
+
         // BGM 不在这里：MusicId 是宿主音频配置表的 ID，clip 跟着配置表一起在内存里，
         // 没有"要预载的资源"这回事。本结构体里的东西一律是【需要预载的】，别往里塞别的。
 
@@ -68,11 +71,13 @@ namespace Drama.Runtime.Flow
         public readonly IReadOnlyCollection<string> VoiceTables;
 
         DramaAssetKeys(HashSet<int> actors, HashSet<ActorAssetRef> actorAssets, HashSet<long> backgrounds,
+                       HashSet<long> cgs,
                        List<LocalizedRef> voices, HashSet<string> stringTables, HashSet<string> voiceTables)
         {
             ActorIds = actors;
             ActorAssets = actorAssets;
             BackgroundIds = backgrounds;
+            CgIds = cgs;
             VoiceRefs = voices;
             StringTables = stringTables;
             VoiceTables = voiceTables;
@@ -83,13 +88,14 @@ namespace Drama.Runtime.Flow
             var actors = new HashSet<int>();
             var actorAssets = new HashSet<ActorAssetRef>();
             var backgrounds = new HashSet<long>();
+            var cgs = new HashSet<long>();
             var voices = new List<LocalizedRef>();
             var voiceSeen = new HashSet<string>();
             var tables = new HashSet<string>();
             var voiceTables = new HashSet<string>();
 
             if (script?.Actions == null)
-                return new DramaAssetKeys(actors, actorAssets, backgrounds, voices, tables, voiceTables);
+                return new DramaAssetKeys(actors, actorAssets, backgrounds, cgs, voices, tables, voiceTables);
 
             // 这里刻意遍历整张表而不是 WalkAll：
             // 预载多load几个没走到的分支，远比播到一半发现没加载要好
@@ -139,11 +145,16 @@ namespace Drama.Runtime.Flow
                     case ActorAnimFloatAction a:     actors.Add(a.ActorId); break;
                     case ActorAnimTriggerAction a:   actors.Add(a.ActorId); break;
                     // ActorHighlightAction 是全局开关，不针对角色，没有可收的 ID
+
+                    // CG 只有出现那条带 ID，其余（变换 / 抖动 / Animator）都是作用在"当前那张"上
+                    case CGShowAction cg:
+                        if (cg.CgId > 0) cgs.Add(cg.CgId);
+                        break;
                 }
             }
 
             actors.Remove(-1);   // -1 是"没指定角色"的哨兵，别去加载它
-            return new DramaAssetKeys(actors, actorAssets, backgrounds, voices, tables, voiceTables);
+            return new DramaAssetKeys(actors, actorAssets, backgrounds, cgs, voices, tables, voiceTables);
         }
 
         static void AddTable(HashSet<string> tables, LocalizedRef reference)

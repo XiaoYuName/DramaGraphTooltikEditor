@@ -73,6 +73,7 @@ namespace Drama.Runtime.Tests
         public Drama.Runtime.Services.IDialogueView       Dialogue     { get; set; }
         public Drama.Runtime.Services.IChoiceView         Choice       { get; set; }
         public Drama.Runtime.Services.IActorStage         Actors       { get; set; }
+        public Drama.Runtime.Services.IDramaCG           CG           { get; set; }
         public Drama.Runtime.Services.IDramaScreen        Screen       { get; set; }
         public Drama.Runtime.Services.IDramaBackground    Background   { get; set; }
         public Drama.Runtime.Services.IDramaLocalization  Localization { get; set; }

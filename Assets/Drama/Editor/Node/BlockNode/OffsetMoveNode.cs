@@ -6,7 +6,7 @@ namespace Drama.Editor
 {
     [System.Serializable]
     [Node("命令/变换","Assets/Drama/Assets/ActionMovement.png","小动作")]
-    [UseWithContext(typeof(ActorOffsetMoveNode))]
+    [UseWithContext(typeof(ActorOffsetMoveNode),typeof(CGOffsetMoveNode))]
     public class OffsetMoveNode : BlockNode
     {
         public const string Offset = "Offset";
