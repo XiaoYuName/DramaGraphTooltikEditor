@@ -80,6 +80,24 @@ namespace Drama.Runtime.Services
         /// 什么时候真正打开由宿主的收尾流程决定。
         /// </summary>
         void RequestOpenUIOnEnd(string uiPage);
+
+        /// <summary>
+        /// 报上"剧情结束之后要播哪段引导"。<see cref="EndGuideDramaAction"/> 用。
+        ///
+        /// 和 <see cref="RequestOpenUIOnEnd"/> 一样：<b>实现里只记下来，不要当场开</b>，
+        /// 引导多半要指着某个界面上的按钮，而那些界面要等剧情收尾之后才还原回来。
+        /// </summary>
+        void RequestStartGuideOnEnd(long guideId);
+
+        /// <summary>
+        /// 设置游戏场景里那些"和剧情无关的东西"的显隐：场景 NPC、地图配置的场景默认UI。
+        /// <see cref="SceneVisibilityAction"/> 用。
+        ///
+        /// <b>实现里要把它当成一个持续的"意图"存下来，而不是执行一次就完。</b>
+        /// 剧情中途切场景会重新生成 NPC、重新开默认UI，只在收到指令那一刻做一次是拦不住的 ——
+        /// 每次场景就绪时都要按最后一次的意图重新应用。
+        /// </summary>
+        void SetSceneVisibility(bool showNpc, bool showSceneUI);
     }
 
     /// <summary>

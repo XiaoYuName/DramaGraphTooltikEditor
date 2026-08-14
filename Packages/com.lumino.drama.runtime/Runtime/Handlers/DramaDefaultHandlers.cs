@@ -21,7 +21,9 @@ namespace Drama.Runtime.Handlers
             registry.Register(new GotoDramaActionHandler());
             registry.Register(new ReceiveTaskActionHandler());
             registry.Register(new ChangeGameSceneActionHandler());
+            registry.Register(new SceneVisibilityActionHandler());
             registry.Register(new EndUIDramaActionHandler());
+            registry.Register(new EndGuideDramaActionHandler());
 
             // ---- 对话
             registry.Register(new TalkActionHandler());

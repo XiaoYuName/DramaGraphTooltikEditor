@@ -382,6 +382,48 @@ namespace Drama.Runtime
     }
 
     /// <summary>
+    /// 游戏场景里那些"和剧情无关的东西"的显隐：场景 NPC、地图配置的场景默认UI。
+    ///
+    /// <b>不是一次性的，是个持续状态。</b> 剧情期间宿主默认把两者都收起来（要独占屏幕），
+    /// 而 <see cref="ChangeGameSceneAction"/> 切场景会重新生成 NPC、重新开默认UI ——
+    /// 所以这条指令改的是"意图"，宿主每次场景就绪时按它重新应用一遍。
+    ///
+    /// 正因为是持续的，<b>切场景节点上不需要再带一份显隐参数</b>：
+    /// 想让新场景露出 NPC，在切场景之前摆一条本指令即可，切完自动生效、不会闪。
+    /// </summary>
+    [Serializable]
+    public sealed class SceneVisibilityAction : DramaAction
+    {
+        public override string Kind => "场景显隐";
+
+        [LabelText("显示场景NPC")] public bool ShowNpc = true;
+
+        /// <summary>地图配置里那个「场景默认UI」。不是剧情自己的界面。</summary>
+        [LabelText("显示场景默认UI")] public bool ShowSceneUI = true;
+
+        public override string Summary =>
+            $"场景显隐 · NPC{(ShowNpc ? "显示" : "隐藏")} · 默认UI{(ShowSceneUI ? "显示" : "隐藏")}";
+    }
+
+    /// <summary>
+    /// 剧情结束并打开一段引导。
+    ///
+    /// 和 <see cref="EndUIDramaAction"/> 是姊妹指令，区别只是打开的东西不一样
+    /// （一个是界面名、一个是引导ID）。同样<b>没有后继</b>，执行完剧情就结束了；
+    /// 也同样只是把 ID 报给宿主，真正开始引导的时机由宿主的收尾流程决定。
+    /// </summary>
+    [Serializable]
+    public sealed class EndGuideDramaAction : DramaAction
+    {
+        public override string Kind => "引导结束";
+
+        /// <summary>引导表的 ID。小于等于 0 = 只结束，不开引导。</summary>
+        [LabelText("引导ID")] public long GuideId = -1;
+
+        public override string Summary => GuideId > 0 ? $"结束 · 引导 {GuideId}" : "结束";
+    }
+
+    /// <summary>
     /// 剧情结束并打开一个界面。
     ///
     /// <b>这条指令自己不打开 UI</b>，只是把"结束之后开哪个"报上去 ——

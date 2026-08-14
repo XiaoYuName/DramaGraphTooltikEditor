@@ -386,6 +386,9 @@ namespace Drama.Runtime.Tests
         public readonly List<(long MapSceneId, long MinSceneId)> SceneChanges =
             new List<(long, long)>();
         public readonly List<string> RequestedEndUIs = new List<string>();
+        public readonly List<long> RequestedEndGuides = new List<long>();
+        public readonly List<(bool ShowNpc, bool ShowSceneUI)> SceneVisibilities =
+            new List<(bool, bool)>();
 
         public UniTask ReceiveTaskAsync(long taskId, CancellationToken ct)
         {
@@ -400,6 +403,11 @@ namespace Drama.Runtime.Tests
         }
 
         public void RequestOpenUIOnEnd(string uiPage) => RequestedEndUIs.Add(uiPage);
+
+        public void RequestStartGuideOnEnd(long guideId) => RequestedEndGuides.Add(guideId);
+
+        public void SetSceneVisibility(bool showNpc, bool showSceneUI) =>
+            SceneVisibilities.Add((showNpc, showSceneUI));
     }
 
     /// <summary>把上面这堆一次性装配好。</summary>

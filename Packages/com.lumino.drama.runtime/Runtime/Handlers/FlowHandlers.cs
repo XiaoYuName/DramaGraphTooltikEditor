@@ -108,4 +108,32 @@ namespace Drama.Runtime.Handlers
             return UniTask.CompletedTask;
         }
     }
+
+    /// <summary>
+    /// 剧情结束并播一段引导。做法和 <see cref="EndUIDramaActionHandler"/> 完全一致 ——
+    /// 只报 ID，什么时候真正开始由宿主的收尾流程决定。
+    /// </summary>
+    public sealed class EndGuideDramaActionHandler : DramaSimpleActionHandler<EndGuideDramaAction>
+    {
+        protected override UniTask RunAsync(EndGuideDramaAction a, IDramaContext ctx, CancellationToken ct)
+        {
+            if (a.GuideId > 0)
+                ctx.Game?.RequestStartGuideOnEnd(a.GuideId);
+
+            return UniTask.CompletedTask;
+        }
+    }
+
+    /// <summary>
+    /// 场景 NPC / 场景默认UI 的显隐。改的是一个持续意图，见
+    /// <see cref="Services.IDramaGameBridge.SetSceneVisibility"/>。
+    /// </summary>
+    public sealed class SceneVisibilityActionHandler : DramaSimpleActionHandler<SceneVisibilityAction>
+    {
+        protected override UniTask RunAsync(SceneVisibilityAction a, IDramaContext ctx, CancellationToken ct)
+        {
+            ctx.Game?.SetSceneVisibility(a.ShowNpc, a.ShowSceneUI);
+            return UniTask.CompletedTask;
+        }
+    }
 }
