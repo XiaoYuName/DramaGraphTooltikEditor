@@ -38,7 +38,9 @@ namespace Drama.Editor.Export
                 case ReceiveTask n:            ExportReceiveTask(n, ctx); return true;
                 case ChangeDramaNode n:        ExportChoice(n, ctx); return true;
                 case ChangeGameScreenNode n:   ExportChangeGameScene(n, ctx); return true;
+                case SceneVisibilityNode n:    ExportSceneVisibility(n, ctx); return true;
                 case EndUIDramaNode n:         ExportEndUI(n, ctx); return true;
+                case EndGuideDramaNode n:      ExportEndGuide(n, ctx); return true;
 
                 // ------------------------------------------------ 立绘
                 // 三种立绘在图里是三个节点，到数据层收敛成同一条指令 + 一个类型字段
@@ -202,6 +204,30 @@ namespace Drama.Editor.Export
                 ctx.Warn("UI结束节点没填界面名，等同于普通「结束」", n);
 
             ctx.Emit(new EndUIDramaAction { UiPage = uiPage });
+        }
+
+        /// <summary>引导结束。和「UI结束」同一个路子，只是打开的东西是引导。</summary>
+        static void ExportEndGuide(EndGuideDramaNode n, DramaExportContext ctx)
+        {
+            var guideId = ctx.Port(n, EndGuideDramaNode.GuideID, -1L);
+
+            if (guideId <= 0)
+                ctx.Warn("引导结束节点没填引导ID，等同于普通「结束」", n);
+
+            ctx.Emit(new EndGuideDramaAction { GuideId = guideId });
+        }
+
+        /// <summary>
+        /// 场景显隐。改的是持续状态，切场景也保持 ——
+        /// 所以想让新场景露出 NPC，本节点要摆在「游戏场景」节点<b>前面</b>。
+        /// </summary>
+        static void ExportSceneVisibility(SceneVisibilityNode n, DramaExportContext ctx)
+        {
+            ctx.Emit(new SceneVisibilityAction
+            {
+                ShowNpc = ctx.Port(n, SceneVisibilityNode.ShowNpc, true),
+                ShowSceneUI = ctx.Port(n, SceneVisibilityNode.ShowSceneUI, true),
+            });
         }
 
         /// <summary>
