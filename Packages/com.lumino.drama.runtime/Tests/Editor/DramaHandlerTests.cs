@@ -115,6 +115,39 @@ namespace Drama.Runtime.Tests
         }
 
         [Test]
+        public void 等待点击_停下来等玩家点一下()
+        {
+            // 没有台词的场合（整屏 CG）用它把节奏交回玩家手里。
+            // 点击入口在宿主那边是盖满全屏的按钮，和对话框显不显示无关
+            var awaiter = Run(new WaitInputActionHandler(), new WaitInputAction());
+
+            Assert.IsTrue(m_S.Dialogue.AdvanceLatch.IsWaiting);
+            Assert.IsFalse(awaiter.IsCompleted, "应该卡在等玩家点击上");
+
+            m_S.Dialogue.AdvanceLatch.Open();
+            Assert.IsTrue(awaiter.IsCompleted);
+        }
+
+        [Test]
+        public void 等待点击_Skip模式下不等人()
+        {
+            m_S.Mode = EDramaPlaybackMode.Skip;
+            RunToEnd(new WaitInputActionHandler(), new WaitInputAction());
+
+            Assert.IsFalse(m_S.Dialogue.AdvanceLatch.IsWaiting);
+        }
+
+        [Test]
+        public void 等待点击_读档恢复期间不等人()
+        {
+            // ★ 这条不成立的话，静默重放会停在这儿等点击，读档就再也走不到存档点了
+            m_S.Mode = EDramaPlaybackMode.Restoring;
+            RunToEnd(new WaitInputActionHandler(), new WaitInputAction());
+
+            Assert.IsFalse(m_S.Dialogue.AdvanceLatch.IsWaiting);
+        }
+
+        [Test]
         public void 台词_自动等待期间玩家点击可以提前翻页()
         {
             var a = Line();

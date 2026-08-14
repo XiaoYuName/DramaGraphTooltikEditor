@@ -258,6 +258,27 @@ namespace Drama.Runtime
         public override string Summary => $"等待 · {Seconds:0.###}s";
     }
 
+    /// <summary>
+    /// 停下来等玩家推进一步（点一下屏幕）。
+    ///
+    /// <b>给没有台词的场合用</b>——比如整屏 CG：画面已经摆好了，但不该自己往下走，
+    /// 要等玩家看够了点一下。有台词的时候不需要它，台词本身就会等
+    /// （见 <see cref="TalkAction"/>）。
+    ///
+    /// <b>"点一下"具体是什么输入，是宿主的事。</b> 本指令只表达"等玩家推进"，
+    /// 走的和台词翻页同一个口子（<see cref="Services.IDialogueView.WaitForAdvanceAsync"/>）——
+    /// 宿主以后想让空格 / Esc 也算数，在那个实现里多接几个键就行，这一层不用改。
+    ///
+    /// <b>没有"最多等几秒"这种字段</b>：要定时往下走就用「等待」指令
+    /// （<see cref="WaitAction"/>），两条指令各管一件事。
+    /// </summary>
+    [Serializable]
+    public sealed class WaitInputAction : DramaAction
+    {
+        public override string Kind => "等待点击";
+        public override string Summary => "等待点击";
+    }
+
     /// <summary>本剧本结束，跳到另一个剧本。</summary>
     [Serializable]
     public sealed class GotoDramaAction : DramaAction

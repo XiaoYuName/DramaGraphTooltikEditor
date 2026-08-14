@@ -12,6 +12,29 @@ namespace Drama.Runtime.Handlers
             => DramaWait.Seconds(a.Seconds, ctx, ct);
     }
 
+    /// <summary>
+    /// 等玩家点一下再往下走。
+    ///
+    /// 走的是台词翻页那同一个口子 —— 点击入口在宿主那边是一个盖满全屏的按钮，
+    /// 和对话框显不显示无关，所以整屏 CG（对话框藏着）时照样点得动。
+    ///
+    /// <b>跳过 / 读档恢复不等人。</b> 恢复期间尤其要紧：这一条不成立的话，
+    /// 静默重放会停在这儿等点击，读档就再也走不到存档点了 —— 和
+    /// <see cref="TalkActionHandler"/> 里那条判断是同一个理由。
+    /// </summary>
+    public sealed class WaitInputActionHandler : DramaSimpleActionHandler<WaitInputAction>
+    {
+        protected override async UniTask RunAsync(WaitInputAction a, IDramaContext ctx, CancellationToken ct)
+        {
+            if (DramaWait.IsInstant(ctx.Mode))
+            {
+                return;
+            }
+
+            await ctx.Dialogue.WaitForAdvanceAsync(ct);
+        }
+    }
+
     /// <summary>选项分支。玩家选完直接跳到那条支线。</summary>
     public sealed class ChoiceActionHandler : DramaActionHandler<ChoiceAction>
     {

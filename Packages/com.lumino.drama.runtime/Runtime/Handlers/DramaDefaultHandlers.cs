@@ -17,6 +17,7 @@ namespace Drama.Runtime.Handlers
         {
             // ---- 流程
             registry.Register(new WaitActionHandler());
+            registry.Register(new WaitInputActionHandler());
             registry.Register(new ChoiceActionHandler());
             registry.Register(new GotoDramaActionHandler());
             registry.Register(new ReceiveTaskActionHandler());
