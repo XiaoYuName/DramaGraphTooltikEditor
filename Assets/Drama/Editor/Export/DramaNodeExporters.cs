@@ -34,6 +34,7 @@ namespace Drama.Editor.Export
 
                 // ------------------------------------------------ 流程
                 case WaitNode n:               ExportWait(n, ctx); return true;
+                case WaitInputNode n:          ctx.Emit(new WaitInputAction()); return true;
                 case GotoDramaNode n:          ExportGoto(n, ctx); return true;
                 case ReceiveTask n:            ExportReceiveTask(n, ctx); return true;
                 case ChangeDramaNode n:        ExportChoice(n, ctx); return true;
