@@ -1,0 +1,239 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 621039800177f9c4f926a12b0c863344, type: 3}
+  m_Name: 10007
+  m_EditorClassIdentifier: Drama.Runtime::Drama.Runtime.DramaScript
+  DramaId: 10007
+  EntryIndex: 0
+  FormatVersion: 2
+  SourceGraph: Assets/Drama/Configs/10007.agv
+  Actions:
+  - rid: 3931017197507576198
+  - rid: 3931017197507576199
+  - rid: 3931017197507576200
+  - rid: 3931017197507576201
+  - rid: 3931017197507576202
+  - rid: 3931017197507576203
+  - rid: 3931017197507576204
+  - rid: 3931017197507576205
+  - rid: 3931017197507576206
+  - rid: 3931017197507576207
+  - rid: 3931017197507576208
+  - rid: 3931017197507576209
+  references:
+    version: 2
+    RefIds:
+    - rid: 3931017197507576198
+      type: {class: ScreenTransitionAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 0
+        Next: 0100000002000000i
+        InboundCount: 1
+        TransitionKind: 0
+        Phase: 0
+        InSeconds: 1
+        OutSeconds: 0
+        Color: {r: 0, g: 0, b: 0, a: 1}
+        Alpha: 1
+        Ease: 1
+    - rid: 3931017197507576199
+      type: {class: ScreenTransitionAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 1
+        Next: 03000000i
+        InboundCount: 2
+        TransitionKind: 0
+        Phase: 1
+        InSeconds: 0
+        OutSeconds: 1
+        Color: {r: 1, g: 1, b: 1, a: 1}
+        Alpha: 0
+        Ease: 1
+    - rid: 3931017197507576200
+      type: {class: ActorHighlightAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 2
+        Next: 01000000i
+        InboundCount: 1
+        Gray: 1
+        DimBrightness: 0.8
+        Shrink: 1
+        ShrinkScale: 0.95
+    - rid: 3931017197507576201
+      type: {class: ActorShowAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 3
+        Next: 04000000i
+        InboundCount: 1
+        ActorId: 10001
+        AssetKind: 1
+        ShowKind: 2
+        Direction: 0
+        Position: {x: 1200, y: 0}
+        Scale: {x: 1, y: 1}
+        DurationSeconds: 0.6
+        Ease: 1
+    - rid: 3931017197507576202
+      type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 4
+        Next: 05000000i
+        InboundCount: 1
+        Text:
+          Table: DramaDialogue
+          Key: 30268
+        Voice:
+          Table: 
+          Key: 
+        Speaker: 3
+        SpeakerName:
+          Table: 
+          Key: 
+        ActorId: 10001
+        Balloon: 0
+        AutoWaitSeconds: 0
+        NameColor: {r: 1, g: 1, b: 1, a: 1}
+    - rid: 3931017197507576203
+      type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 5
+        Next: 06000000i
+        InboundCount: 1
+        Text:
+          Table: DramaDialogue
+          Key: 30269
+        Voice:
+          Table: 
+          Key: 
+        Speaker: 3
+        SpeakerName:
+          Table: 
+          Key: 
+        ActorId: 10001
+        Balloon: 0
+        AutoWaitSeconds: 0
+        NameColor: {r: 1, g: 1, b: 1, a: 1}
+    - rid: 3931017197507576204
+      type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 6
+        Next: 07000000i
+        InboundCount: 1
+        Text:
+          Table: DramaDialogue
+          Key: 30270
+        Voice:
+          Table: 
+          Key: 
+        Speaker: 3
+        SpeakerName:
+          Table: 
+          Key: 
+        ActorId: 10001
+        Balloon: 0
+        AutoWaitSeconds: 0
+        NameColor: {r: 1, g: 1, b: 1, a: 1}
+    - rid: 3931017197507576205
+      type: {class: ChoiceAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 7
+        Next: 
+        InboundCount: 1
+        Options:
+        - Text:
+            Table: DramaDialogue
+            Key: 30271
+          Next: 8
+        - Text:
+            Table: DramaDialogue
+            Key: 30274
+          Next: 9
+    - rid: 3931017197507576206
+      type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 8
+        Next: 0a000000i
+        InboundCount: 1
+        Text:
+          Table: DramaDialogue
+          Key: 30272
+        Voice:
+          Table: 
+          Key: 
+        Speaker: 1
+        SpeakerName:
+          Table: 
+          Key: 
+        ActorId: 0
+        Balloon: 0
+        AutoWaitSeconds: 0
+        NameColor: {r: 1, g: 1, b: 1, a: 1}
+    - rid: 3931017197507576207
+      type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 9
+        Next: 0b000000i
+        InboundCount: 1
+        Text:
+          Table: DramaDialogue
+          Key: 30275
+        Voice:
+          Table: 
+          Key: 
+        Speaker: 1
+        SpeakerName:
+          Table: 
+          Key: 
+        ActorId: 0
+        Balloon: 0
+        AutoWaitSeconds: 0
+        NameColor: {r: 1, g: 1, b: 1, a: 1}
+    - rid: 3931017197507576208
+      type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 10
+        Next: 
+        InboundCount: 1
+        Text:
+          Table: DramaDialogue
+          Key: 30273
+        Voice:
+          Table: 
+          Key: 
+        Speaker: 3
+        SpeakerName:
+          Table: 
+          Key: 
+        ActorId: 10001
+        Balloon: 0
+        AutoWaitSeconds: 0
+        NameColor: {r: 1, g: 1, b: 1, a: 1}
+    - rid: 3931017197507576209
+      type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 11
+        Next: 
+        InboundCount: 1
+        Text:
+          Table: DramaDialogue
+          Key: 30276
+        Voice:
+          Table: 
+          Key: 
+        Speaker: 3
+        SpeakerName:
+          Table: 
+          Key: 
+        ActorId: 10001
+        Balloon: 0
+        AutoWaitSeconds: 0
+        NameColor: {r: 1, g: 1, b: 1, a: 1}

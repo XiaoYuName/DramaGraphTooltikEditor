@@ -1,0 +1,160 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 621039800177f9c4f926a12b0c863344, type: 3}
+  m_Name: 10004
+  m_EditorClassIdentifier: Drama.Runtime::Drama.Runtime.DramaScript
+  DramaId: 10004
+  EntryIndex: 0
+  FormatVersion: 2
+  SourceGraph: Assets/Drama/Configs/10004.agv
+  Actions:
+  - rid: 3931017197507576140
+  - rid: 3931017197507576141
+  - rid: 3931017197507576142
+  - rid: 3931017197507576143
+  - rid: 3931017197507576144
+  - rid: 3931017197507576145
+  - rid: 3931017197507576146
+  - rid: 3931017197507576147
+  - rid: 3931017197507576148
+  references:
+    version: 2
+    RefIds:
+    - rid: 3931017197507576140
+      type: {class: ScreenTransitionAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 0
+        Next: 0100000002000000i
+        InboundCount: 1
+        TransitionKind: 0
+        Phase: 0
+        InSeconds: 1
+        OutSeconds: 0
+        Color: {r: 0, g: 0, b: 0, a: 1}
+        Alpha: 1
+        Ease: 1
+    - rid: 3931017197507576141
+      type: {class: ScreenTransitionAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 1
+        Next: 03000000i
+        InboundCount: 2
+        TransitionKind: 0
+        Phase: 1
+        InSeconds: 0
+        OutSeconds: 1
+        Color: {r: 1, g: 1, b: 1, a: 1}
+        Alpha: 0
+        Ease: 1
+    - rid: 3931017197507576142
+      type: {class: ActorHighlightAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 2
+        Next: 01000000i
+        InboundCount: 1
+        Gray: 1
+        DimBrightness: 0.8
+        Shrink: 1
+        ShrinkScale: 0.95
+    - rid: 3931017197507576143
+      type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 3
+        Next: 04000000i
+        InboundCount: 1
+        Text:
+          Table: DramaDialogue
+          Key: 30209
+        Voice:
+          Table: 
+          Key: 
+        Speaker: 1
+        SpeakerName:
+          Table: 
+          Key: 
+        ActorId: 0
+        Balloon: 0
+        AutoWaitSeconds: 0
+        NameColor: {r: 1, g: 1, b: 1, a: 1}
+    - rid: 3931017197507576144
+      type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 4
+        Next: 05000000i
+        InboundCount: 1
+        Text:
+          Table: DramaDialogue
+          Key: 30210
+        Voice:
+          Table: 
+          Key: 
+        Speaker: 1
+        SpeakerName:
+          Table: 
+          Key: 
+        ActorId: 0
+        Balloon: 0
+        AutoWaitSeconds: 0
+        NameColor: {r: 1, g: 1, b: 1, a: 1}
+    - rid: 3931017197507576145
+      type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 5
+        Next: 06000000i
+        InboundCount: 1
+        Text:
+          Table: DramaDialogue
+          Key: 30211
+        Voice:
+          Table: 
+          Key: 
+        Speaker: 1
+        SpeakerName:
+          Table: 
+          Key: 
+        ActorId: 0
+        Balloon: 0
+        AutoWaitSeconds: 0
+        NameColor: {r: 1, g: 1, b: 1, a: 1}
+    - rid: 3931017197507576146
+      type: {class: ScreenTransitionAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 6
+        Next: 07000000i
+        InboundCount: 1
+        TransitionKind: 0
+        Phase: 0
+        InSeconds: 1
+        OutSeconds: 0
+        Color: {r: 0, g: 0, b: 0, a: 1}
+        Alpha: 1
+        Ease: 1
+    - rid: 3931017197507576147
+      type: {class: ScreenTransitionAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 7
+        Next: 08000000i
+        InboundCount: 1
+        TransitionKind: 0
+        Phase: 1
+        InSeconds: 0
+        OutSeconds: 1
+        Color: {r: 1, g: 1, b: 1, a: 1}
+        Alpha: 0
+        Ease: 1
+    - rid: 3931017197507576148
+      type: {class: EndGuideDramaAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 8
+        Next: 
+        InboundCount: 1
+        GuideId: 10001

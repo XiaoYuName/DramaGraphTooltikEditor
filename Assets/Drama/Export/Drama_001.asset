@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 621039800177f9c4f926a12b0c863344, type: 3}
+  m_Name: Drama_001
+  m_EditorClassIdentifier: Drama.Runtime::Drama.Runtime.DramaScript
+  DramaId: 10000
+  EntryIndex: 0
+  FormatVersion: 2
+  SourceGraph: Assets/Drama/Configs/Drama_001.agv
+  Actions:
+  - rid: 3931017197507576210
+  - rid: 3931017197507576211
+  - rid: 3931017197507576212
+  - rid: 3931017197507576213
+  references:
+    version: 2
+    RefIds:
+    - rid: 3931017197507576210
+      type: {class: ScreenTransitionAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 0
+        Next: 01000000i
+        InboundCount: 1
+        TransitionKind: 1
+        Phase: 0
+        InSeconds: 1
+        OutSeconds: 0
+        Color: {r: 0, g: 0, b: 0, a: 1}
+        Alpha: 1
+        Ease: 1
+    - rid: 3931017197507576211
+      type: {class: ActorHighlightAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 1
+        Next: 02000000i
+        InboundCount: 1
+        Gray: 0
+        DimBrightness: 1
+        Shrink: 1
+        ShrinkScale: 0.95
+    - rid: 3931017197507576212
+      type: {class: ScreenTransitionAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 2
+        Next: 03000000i
+        InboundCount: 1
+        TransitionKind: 2
+        Phase: 1
+        InSeconds: 0
+        OutSeconds: 1
+        Color: {r: 0, g: 0, b: 0, a: 1}
+        Alpha: 0
+        Ease: 1
+    - rid: 3931017197507576213
+      type: {class: EndGuideDramaAction, ns: Drama.Runtime, asm: Drama.Runtime}
+      data:
+        Index: 3
+        Next: 
+        InboundCount: 1
+        GuideId: 10000
