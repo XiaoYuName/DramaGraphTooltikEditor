@@ -380,6 +380,24 @@ namespace Drama.Runtime
     }
 
     /// <summary>
+    /// 发一份奖励，并弹出"获得奖励"界面。
+    ///
+    /// 奖励内容由宿主的奖励表决定，这里只给 ID。发放和弹窗都归宿主
+    /// （见 <see cref="Services.IDramaGameBridge.ShowRewardAsync"/>）。
+    ///
+    /// <b>手动模式下会停下来等玩家关掉弹窗</b>，自动 / 跳过模式下弹窗自己收掉、剧情继续。
+    /// <b>读档的静默重放期间整条指令跳过</b> —— 奖励当年已经发过了，
+    /// 再发一次玩家每读一次档就白拿一份。
+    /// </summary>
+    [Serializable]
+    public sealed class ReceiveRewardAction : DramaAction
+    {
+        public override string Kind => "获取奖励";
+        [LabelText("奖励表ID")] public long RewardId = -1;
+        public override string Summary => $"获取奖励 · {RewardId}";
+    }
+
+    /// <summary>
     /// 切换<b>游戏内的真实场景</b>，不是剧情的背景图。
     ///
     /// 和 <c>ChangeBackgroundAction</c> 的区别：那个只是换剧情舞台后面那张图，
@@ -424,6 +442,29 @@ namespace Drama.Runtime
 
         public override string Summary =>
             $"场景显隐 · NPC{(ShowNpc ? "显示" : "隐藏")} · 默认UI{(ShowSceneUI ? "显示" : "隐藏")}";
+    }
+
+    /// <summary>
+    /// 打开一个界面，<b>等玩家把它关掉再往下走</b>。
+    ///
+    /// 和 <see cref="EndUIDramaAction"/> 的区别是时机：那条是"剧情结束了顺便开个界面"、
+    /// 开完剧情就没了；这条是剧情<b>中途</b>插一个界面，玩家关掉之后剧情接着演。
+    ///
+    /// 等待方式和 <see cref="ReceiveRewardAction"/> 一样：正常模式等玩家关，
+    /// 自动 / 跳过模式下界面自己收掉、剧情不停（见
+    /// <see cref="Services.IDramaGameBridge.ShowUIAsync"/>）。
+    /// 读档的静默重放期间整条跳过 —— 重放不该往玩家脸上弹界面。
+    /// </summary>
+    [Serializable]
+    public sealed class ShowUIAction : DramaAction
+    {
+        /// <summary>宿主 UI 系统里的界面ID（就是界面名，比如 "MainUI"）。</summary>
+        [LabelText("界面ID")] public string UiPage;
+
+        public override string Kind => "打开界面";
+
+        public override string Summary =>
+            string.IsNullOrEmpty(UiPage) ? "打开界面 · (没填)" : $"打开界面 · {UiPage}";
     }
 
     /// <summary>

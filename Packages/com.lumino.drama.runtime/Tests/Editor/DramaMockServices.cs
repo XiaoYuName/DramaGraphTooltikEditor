@@ -390,10 +390,38 @@ namespace Drama.Runtime.Tests
         public readonly List<(bool ShowNpc, bool ShowSceneUI)> SceneVisibilities =
             new List<(bool, bool)>();
 
+        public readonly List<(long RewardId, EDramaPlaybackMode Mode)> ShownRewards =
+            new List<(long, EDramaPlaybackMode)>();
+
+        /// <summary>奖励弹窗挂在那儿等玩家关 —— 默认不挂，专测"手动模式要等人"时再打开。</summary>
+        public bool HoldReward;
+
+        public readonly Latch RewardLatch = new Latch();
+
         public UniTask ReceiveTaskAsync(long taskId, CancellationToken ct)
         {
             ReceivedTasks.Add(taskId);
             return UniTask.CompletedTask;
+        }
+
+        public UniTask ShowRewardAsync(long rewardId, EDramaPlaybackMode mode, CancellationToken ct)
+        {
+            ShownRewards.Add((rewardId, mode));
+            return HoldReward ? RewardLatch.WaitAsync(ct) : UniTask.CompletedTask;
+        }
+
+        public readonly List<(string UiPage, EDramaPlaybackMode Mode)> ShownUIs =
+            new List<(string, EDramaPlaybackMode)>();
+
+        /// <summary>界面挂在那儿等玩家关 —— 默认不挂，专测"手动模式要等人"时再打开。</summary>
+        public bool HoldUI;
+
+        public readonly Latch UILatch = new Latch();
+
+        public UniTask ShowUIAsync(string uiPage, EDramaPlaybackMode mode, CancellationToken ct)
+        {
+            ShownUIs.Add((uiPage, mode));
+            return HoldUI ? UILatch.WaitAsync(ct) : UniTask.CompletedTask;
         }
 
         public UniTask ChangeGameSceneAsync(long mapSceneId, long minSceneId, CancellationToken ct)

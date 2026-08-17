@@ -63,6 +63,33 @@ namespace Drama.Runtime.Services
         UniTask ReceiveTaskAsync(long taskId, CancellationToken ct);
 
         /// <summary>
+        /// 发一份奖励并弹出"获得奖励"界面，<b>等这一下交互结束再返回</b>。
+        /// <see cref="ReceiveRewardAction"/> 用。
+        ///
+        /// <b>怎么等由实现方按 <paramref name="mode"/> 决定</b>（和
+        /// <see cref="IDialogueView.ShowLineAsync"/> 收 mode 是同一个路子）：
+        ///   正常模式 —— 挂在那儿等玩家自己关掉弹窗；
+        ///   自动 / 跳过 —— 亮一下就自己收掉，别拦着剧情。
+        ///
+        /// 调用方保证<b>不会</b>在读档的静默重放期间调它（那时候奖励早发过了），
+        /// 所以实现里可以放心发放，不用自己去防重复。
+        /// </summary>
+        /// <param name="rewardId">宿主奖励表的 ID。</param>
+        UniTask ShowRewardAsync(long rewardId, Flow.EDramaPlaybackMode mode, CancellationToken ct);
+
+        /// <summary>
+        /// 打开一个界面并<b>等它被关掉</b>再返回。<see cref="ShowUIAction"/> 用。
+        ///
+        /// 等待方式和 <see cref="ShowRewardAsync"/> 完全一致：正常模式等玩家自己关，
+        /// 自动 / 跳过模式下自己收掉、别拦着剧情。
+        ///
+        /// 和 <see cref="RequestOpenUIOnEnd"/> 不是一回事：那个是"剧情结束之后再开"、
+        /// 只记不开；这个是剧情<b>中途</b>开出来并等在这儿。
+        /// </summary>
+        /// <param name="uiPage">宿主 UI 系统里的界面ID（界面名）。</param>
+        UniTask ShowUIAsync(string uiPage, Flow.EDramaPlaybackMode mode, CancellationToken ct);
+
+        /// <summary>
         /// 切换游戏内的真实场景。<see cref="ChangeGameSceneAction"/> 用。
         ///
         /// <b>要等场景真的切完再返回</b> —— 后面的指令（换背景、出立绘）都是演给新场景看的，

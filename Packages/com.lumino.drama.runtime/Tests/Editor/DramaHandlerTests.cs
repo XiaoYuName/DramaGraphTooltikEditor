@@ -115,6 +115,83 @@ namespace Drama.Runtime.Tests
         }
 
         [Test]
+        public void 获取奖励_手动模式停下来等玩家关弹窗()
+        {
+            m_S.Game.HoldReward = true;
+            var awaiter = Run(new ReceiveRewardActionHandler(), new ReceiveRewardAction { RewardId = 7 });
+
+            Assert.AreEqual(1, m_S.Game.ShownRewards.Count);
+            Assert.AreEqual(7, m_S.Game.ShownRewards[0].RewardId);
+            Assert.AreEqual(EDramaPlaybackMode.Normal, m_S.Game.ShownRewards[0].Mode);
+            Assert.IsFalse(awaiter.IsCompleted, "应该卡在等玩家关弹窗上");
+
+            m_S.Game.RewardLatch.Open();
+            Assert.IsTrue(awaiter.IsCompleted);
+        }
+
+        [Test]
+        public void 获取奖励_跳过模式照发但把模式一起交给宿主()
+        {
+            // 跳过时玩家在看戏，奖励该发；弹窗怎么自己收掉是宿主的事，所以模式要交过去
+            m_S.Mode = EDramaPlaybackMode.Skip;
+            RunToEnd(new ReceiveRewardActionHandler(), new ReceiveRewardAction { RewardId = 7 });
+
+            Assert.AreEqual(1, m_S.Game.ShownRewards.Count);
+            Assert.AreEqual(EDramaPlaybackMode.Skip, m_S.Game.ShownRewards[0].Mode);
+        }
+
+        [Test]
+        public void 获取奖励_读档恢复期间一律不发()
+        {
+            // ★ 静默重放会把整段剧情重走一遍，不拦的话玩家每读一次档就白拿一份奖励
+            m_S.Mode = EDramaPlaybackMode.Restoring;
+            RunToEnd(new ReceiveRewardActionHandler(), new ReceiveRewardAction { RewardId = 7 });
+
+            Assert.AreEqual(0, m_S.Game.ShownRewards.Count);
+        }
+
+        [Test]
+        public void 打开界面_手动模式停下来等玩家关掉()
+        {
+            m_S.Game.HoldUI = true;
+            var awaiter = Run(new ShowUIActionHandler(), new ShowUIAction { UiPage = "InventoryUI" });
+
+            Assert.AreEqual(1, m_S.Game.ShownUIs.Count);
+            Assert.AreEqual("InventoryUI", m_S.Game.ShownUIs[0].UiPage);
+            Assert.IsFalse(awaiter.IsCompleted, "应该卡在等玩家关界面上");
+
+            m_S.Game.UILatch.Open();
+            Assert.IsTrue(awaiter.IsCompleted);
+        }
+
+        [Test]
+        public void 打开界面_没填界面ID时什么都不做()
+        {
+            RunToEnd(new ShowUIActionHandler(), new ShowUIAction { UiPage = "" });
+
+            Assert.AreEqual(0, m_S.Game.ShownUIs.Count);
+        }
+
+        [Test]
+        public void 打开界面_读档恢复期间不弹()
+        {
+            // 静默重放不该往玩家脸上弹界面
+            m_S.Mode = EDramaPlaybackMode.Restoring;
+            RunToEnd(new ShowUIActionHandler(), new ShowUIAction { UiPage = "InventoryUI" });
+
+            Assert.AreEqual(0, m_S.Game.ShownUIs.Count);
+        }
+
+        [Test]
+        public void 领取任务_读档恢复期间不重复领()
+        {
+            m_S.Mode = EDramaPlaybackMode.Restoring;
+            RunToEnd(new ReceiveTaskActionHandler(), new ReceiveTaskAction { TaskId = 3 });
+
+            Assert.AreEqual(0, m_S.Game.ReceivedTasks.Count);
+        }
+
+        [Test]
         public void 等待点击_停下来等玩家点一下()
         {
             // 没有台词的场合（整屏 CG）用它把节奏交回玩家手里。

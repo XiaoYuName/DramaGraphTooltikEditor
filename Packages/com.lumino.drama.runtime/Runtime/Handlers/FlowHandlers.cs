@@ -91,7 +91,38 @@ namespace Drama.Runtime.Handlers
     public sealed class ReceiveTaskActionHandler : DramaSimpleActionHandler<ReceiveTaskAction>
     {
         protected override UniTask RunAsync(ReceiveTaskAction a, IDramaContext ctx, CancellationToken ct)
-            => a.TaskId > 0 ? ctx.Game.ReceiveTaskAsync(a.TaskId, ct) : UniTask.CompletedTask;
+        {
+            // ★ 读档恢复是静默重放，任务当年已经领过了 —— 不拦的话玩家每读一次档就重领一次
+            if (a.TaskId <= 0 || ctx.Mode == EDramaPlaybackMode.Restoring)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            return ctx.Game.ReceiveTaskAsync(a.TaskId, ct);
+        }
+    }
+
+    /// <summary>
+    /// 发一份奖励并弹"获得奖励"界面。
+    ///
+    /// <b>等不等玩家由宿主按模式决定</b>（正常模式等玩家关弹窗，自动 / 跳过自己收掉），
+    /// 和台词把 mode 交给 View 是同一个路子 —— 这一层不该知道弹窗长什么样。
+    ///
+    /// <b>读档恢复期间整条跳过</b>：静默重放会把整段剧情重走一遍，
+    /// 奖励当年发过了，再发一次等于每读一次档白拿一份。
+    /// 这正是 Restoring 和 Skip 要分成两个模式的用处 —— 跳过时玩家在看戏，奖励照发。
+    /// </summary>
+    public sealed class ReceiveRewardActionHandler : DramaSimpleActionHandler<ReceiveRewardAction>
+    {
+        protected override UniTask RunAsync(ReceiveRewardAction a, IDramaContext ctx, CancellationToken ct)
+        {
+            if (a.RewardId <= 0 || ctx.Mode == EDramaPlaybackMode.Restoring)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            return ctx.Game?.ShowRewardAsync(a.RewardId, ctx.Mode, ct) ?? UniTask.CompletedTask;
+        }
     }
 
     /// <summary>
@@ -111,6 +142,25 @@ namespace Drama.Runtime.Handlers
             }
 
             return ctx.Game?.ChangeGameSceneAsync(a.MapSceneId, a.MinSceneId, ct) ?? UniTask.CompletedTask;
+        }
+    }
+
+    /// <summary>
+    /// 剧情中途开一个界面，等玩家关掉再往下走。
+    ///
+    /// 和 <see cref="ReceiveRewardActionHandler"/> 同一个套路：等不等玩家由宿主按模式决定，
+    /// 读档的静默重放期间整条跳过（重放不该往玩家脸上弹界面）。
+    /// </summary>
+    public sealed class ShowUIActionHandler : DramaSimpleActionHandler<ShowUIAction>
+    {
+        protected override UniTask RunAsync(ShowUIAction a, IDramaContext ctx, CancellationToken ct)
+        {
+            if (string.IsNullOrEmpty(a.UiPage) || ctx.Mode == EDramaPlaybackMode.Restoring)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            return ctx.Game?.ShowUIAsync(a.UiPage, ctx.Mode, ct) ?? UniTask.CompletedTask;
         }
     }
 
