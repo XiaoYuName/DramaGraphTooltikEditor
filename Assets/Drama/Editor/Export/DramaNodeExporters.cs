@@ -37,6 +37,8 @@ namespace Drama.Editor.Export
                 case WaitInputNode n:          ctx.Emit(new WaitInputAction()); return true;
                 case GotoDramaNode n:          ExportGoto(n, ctx); return true;
                 case ReceiveTask n:            ExportReceiveTask(n, ctx); return true;
+                case ReceiveRewardNode n:      ExportReceiveReward(n, ctx); return true;
+                case ShowUINode n:             ExportShowUI(n, ctx); return true;
                 case ChangeDramaNode n:        ExportChoice(n, ctx); return true;
                 case ChangeGameScreenNode n:   ExportChangeGameScene(n, ctx); return true;
                 case SceneVisibilityNode n:    ExportSceneVisibility(n, ctx); return true;
@@ -170,6 +172,22 @@ namespace Drama.Editor.Export
             var id = ctx.Port(n, ReceiveTask.TaskID, -1L);
             if (id <= 0) ctx.Warn("任务ID 没填", n);
             ctx.Emit(new ReceiveTaskAction { TaskId = id });
+        }
+
+        /// <summary>获取奖励。手动模式会等玩家关掉弹窗，自动 / 跳过不等。</summary>
+        static void ExportReceiveReward(ReceiveRewardNode n, DramaExportContext ctx)
+        {
+            var id = ctx.Port(n, ReceiveRewardNode.RewardID, -1L);
+            if (id <= 0) ctx.Warn("奖励表ID 没填，运行时会跳过这条", n);
+            ctx.Emit(new ReceiveRewardAction { RewardId = id });
+        }
+
+        /// <summary>打开界面。手动模式会等玩家关掉它，自动 / 跳过不等。</summary>
+        static void ExportShowUI(ShowUINode n, DramaExportContext ctx)
+        {
+            var uiPage = ctx.Port(n, ShowUINode.UIPageID, string.Empty);
+            if (string.IsNullOrEmpty(uiPage)) ctx.Warn("界面ID 没填，运行时会跳过这条", n);
+            ctx.Emit(new ShowUIAction { UiPage = uiPage });
         }
 
         /// <summary>
