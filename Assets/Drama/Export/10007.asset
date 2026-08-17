@@ -17,22 +17,22 @@ MonoBehaviour:
   FormatVersion: 2
   SourceGraph: Assets/Drama/Configs/10007.agv
   Actions:
-  - rid: 3931017197507576198
-  - rid: 3931017197507576199
-  - rid: 3931017197507576200
-  - rid: 3931017197507576201
-  - rid: 3931017197507576202
-  - rid: 3931017197507576203
-  - rid: 3931017197507576204
-  - rid: 3931017197507576205
-  - rid: 3931017197507576206
-  - rid: 3931017197507576207
-  - rid: 3931017197507576208
-  - rid: 3931017197507576209
+  - rid: 3931017197507576558
+  - rid: 3931017197507576559
+  - rid: 3931017197507576560
+  - rid: 3931017197507576561
+  - rid: 3931017197507576562
+  - rid: 3931017197507576563
+  - rid: 3931017197507576564
+  - rid: 3931017197507576565
+  - rid: 3931017197507576566
+  - rid: 3931017197507576567
+  - rid: 3931017197507576568
+  - rid: 3931017197507576569
   references:
     version: 2
     RefIds:
-    - rid: 3931017197507576198
+    - rid: 3931017197507576558
       type: {class: ScreenTransitionAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 0
@@ -45,7 +45,7 @@ MonoBehaviour:
         Color: {r: 0, g: 0, b: 0, a: 1}
         Alpha: 1
         Ease: 1
-    - rid: 3931017197507576199
+    - rid: 3931017197507576559
       type: {class: ScreenTransitionAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 1
@@ -58,7 +58,7 @@ MonoBehaviour:
         Color: {r: 1, g: 1, b: 1, a: 1}
         Alpha: 0
         Ease: 1
-    - rid: 3931017197507576200
+    - rid: 3931017197507576560
       type: {class: ActorHighlightAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 2
@@ -68,7 +68,7 @@ MonoBehaviour:
         DimBrightness: 0.8
         Shrink: 1
         ShrinkScale: 0.95
-    - rid: 3931017197507576201
+    - rid: 3931017197507576561
       type: {class: ActorShowAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 3
@@ -82,7 +82,7 @@ MonoBehaviour:
         Scale: {x: 1, y: 1}
         DurationSeconds: 0.6
         Ease: 1
-    - rid: 3931017197507576202
+    - rid: 3931017197507576562
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 4
@@ -102,7 +102,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017197507576203
+    - rid: 3931017197507576563
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 5
@@ -122,7 +122,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017197507576204
+    - rid: 3931017197507576564
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 6
@@ -142,7 +142,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017197507576205
+    - rid: 3931017197507576565
       type: {class: ChoiceAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 7
@@ -157,7 +157,7 @@ MonoBehaviour:
             Table: DramaDialogue
             Key: 30274
           Next: 9
-    - rid: 3931017197507576206
+    - rid: 3931017197507576566
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 8
@@ -177,7 +177,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017197507576207
+    - rid: 3931017197507576567
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 9
@@ -197,7 +197,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017197507576208
+    - rid: 3931017197507576568
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 10
@@ -217,7 +217,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017197507576209
+    - rid: 3931017197507576569
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 11
