@@ -17,14 +17,14 @@ MonoBehaviour:
   FormatVersion: 2
   SourceGraph: Assets/Drama/Configs/Drama_001.agv
   Actions:
-  - rid: 3931017240115151602
-  - rid: 3931017240115151603
-  - rid: 3931017240115151604
-  - rid: 3931017240115151605
+  - rid: 3931017240193007977
+  - rid: 3931017240193007978
+  - rid: 3931017240193007979
+  - rid: 3931017240193007980
   references:
     version: 2
     RefIds:
-    - rid: 3931017240115151602
+    - rid: 3931017240193007977
       type: {class: ScreenTransitionAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 0
@@ -37,7 +37,7 @@ MonoBehaviour:
         Color: {r: 0, g: 0, b: 0, a: 1}
         Alpha: 1
         Ease: 1
-    - rid: 3931017240115151603
+    - rid: 3931017240193007978
       type: {class: ActorHighlightAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 1
@@ -47,7 +47,7 @@ MonoBehaviour:
         DimBrightness: 1
         Shrink: 1
         ShrinkScale: 0.95
-    - rid: 3931017240115151604
+    - rid: 3931017240193007979
       type: {class: ScreenTransitionAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 2
@@ -60,7 +60,7 @@ MonoBehaviour:
         Color: {r: 0, g: 0, b: 0, a: 1}
         Alpha: 0
         Ease: 1
-    - rid: 3931017240115151605
+    - rid: 3931017240193007980
       type: {class: EndGuideDramaAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 3
