@@ -151,6 +151,48 @@ namespace Drama.Runtime.Tests
         }
 
         [Test]
+        public void 小游戏_停下来等玩家玩完()
+        {
+            m_S.Game.HoldMinGame = true;
+            var awaiter = Run(new PlayMinGameActionHandler(), new PlayMinGameAction { MinGameId = 16 });
+
+            Assert.AreEqual(1, m_S.Game.PlayedMinGames.Count);
+            Assert.AreEqual(16, m_S.Game.PlayedMinGames[0], "枚举的整数值要原样交给宿主");
+            Assert.IsFalse(awaiter.IsCompleted, "应该卡在等玩法结束上（含玩家点掉成功界面）");
+
+            m_S.Game.MinGameLatch.Open();
+            Assert.IsTrue(awaiter.IsCompleted);
+        }
+
+        [Test]
+        public void 小游戏_跳过模式也照玩()
+        {
+            // 小游戏是玩家要动手的关卡，不是能快进的演出
+            m_S.Mode = EDramaPlaybackMode.Skip;
+            RunToEnd(new PlayMinGameActionHandler(), new PlayMinGameAction { MinGameId = 16 });
+
+            Assert.AreEqual(1, m_S.Game.PlayedMinGames.Count);
+        }
+
+        [Test]
+        public void 小游戏_没填类型时什么都不做()
+        {
+            RunToEnd(new PlayMinGameActionHandler(), new PlayMinGameAction { MinGameId = -1 });
+
+            Assert.AreEqual(0, m_S.Game.PlayedMinGames.Count);
+        }
+
+        [Test]
+        public void 小游戏_读档恢复期间不玩()
+        {
+            // 那些关卡玩家当年已经过了，重放时再丢进去等于让他重打一遍
+            m_S.Mode = EDramaPlaybackMode.Restoring;
+            RunToEnd(new PlayMinGameActionHandler(), new PlayMinGameAction { MinGameId = 16 });
+
+            Assert.AreEqual(0, m_S.Game.PlayedMinGames.Count);
+        }
+
+        [Test]
         public void 打开界面_手动模式停下来等玩家关掉()
         {
             m_S.Game.HoldUI = true;

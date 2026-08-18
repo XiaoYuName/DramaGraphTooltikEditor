@@ -146,6 +146,29 @@ namespace Drama.Runtime.Handlers
     }
 
     /// <summary>
+    /// 进小游戏，等玩完再往下走。
+    ///
+    /// 和 <see cref="ShowUIActionHandler"/> 同一个套路：等不等由宿主按模式决定，
+    /// 读档的静默重放期间整条跳过 —— 重放不该把玩家丢进小游戏里。
+    /// </summary>
+    public sealed class PlayMinGameActionHandler : DramaSimpleActionHandler<PlayMinGameAction>
+    {
+        protected override UniTask RunAsync(PlayMinGameAction a, IDramaContext ctx, CancellationToken ct)
+        {
+            // 没填类型就当这条不存在；读档的静默重放也不玩 ——
+            // 那些关卡玩家当年已经过了，重放时再把他丢进去等于让他重打一遍
+            if (a.MinGameId < 0 || ctx.Mode == EDramaPlaybackMode.Restoring)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            // 返回时一定是通关了：失败由小游戏自己弹失败界面让玩家重试，不回到剧情。
+            // 所以这里没有"成败分支"要处理，也不用往选项路径里记东西
+            return ctx.Game?.PlayMinGameAsync(a.MinGameId, ct) ?? UniTask.CompletedTask;
+        }
+    }
+
+    /// <summary>
     /// 剧情中途开一个界面，等玩家关掉再往下走。
     ///
     /// 和 <see cref="ReceiveRewardActionHandler"/> 同一个套路：等不等玩家由宿主按模式决定，

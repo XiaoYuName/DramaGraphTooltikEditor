@@ -424,6 +424,19 @@ namespace Drama.Runtime.Tests
             return HoldUI ? UILatch.WaitAsync(ct) : UniTask.CompletedTask;
         }
 
+        public readonly List<int> PlayedMinGames = new List<int>();
+
+        /// <summary>小游戏挂在那儿等玩家玩完 —— 默认不挂，专测"要等"时再打开。</summary>
+        public bool HoldMinGame;
+
+        public readonly Latch MinGameLatch = new Latch();
+
+        public UniTask PlayMinGameAsync(int minGameId, CancellationToken ct)
+        {
+            PlayedMinGames.Add(minGameId);
+            return HoldMinGame ? MinGameLatch.WaitAsync(ct) : UniTask.CompletedTask;
+        }
+
         public UniTask ChangeGameSceneAsync(long mapSceneId, long minSceneId, CancellationToken ct)
         {
             SceneChanges.Add((mapSceneId, minSceneId));

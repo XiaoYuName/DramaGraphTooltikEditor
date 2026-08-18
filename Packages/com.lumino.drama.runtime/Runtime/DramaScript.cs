@@ -370,6 +370,34 @@ namespace Drama.Runtime
             Reset ? $"Animator · 重置 {ParameterName}" : $"Animator · 触发 {ParameterName}";
     }
 
+    /// <summary>
+    /// 进一个小游戏玩法，等玩家玩完，<b>按成功 / 失败走两条不同的支线</b>。
+    ///
+    /// <b>收的是 int 而不是某个枚举</b>：包不该认识宿主有哪些小游戏。
+    /// 剧本里填的就是宿主那边小游戏枚举的整数值，宿主自己转回去
+    /// （本作是服装小游戏 <c>ClothingMinGameType</c>）。这样换一个游戏接同一套剧情系统，
+    /// 只要那边的枚举值对得上就行，包一行都不用改。
+    ///
+    /// <b>只有一个出口，没有"失败"支线</b>：小游戏自己处理失败（弹失败界面让玩家重试），
+    /// 玩不过去就一直重试，回到剧情时一定是成功的。所以剧情这边只有"玩完了，继续"。
+    ///
+    /// <b>"玩完了"是玩家点掉成功界面之后</b>，不是玩法逻辑判定通过的那一刻 ——
+    /// 中间还有一个成功界面要给玩家看，剧情得等它关掉再往下走。
+    ///
+    /// <b>跳过模式照玩</b>：小游戏是玩家要动手的关卡，不是预先写好的演出。
+    /// 唯一不玩的是读档的静默重放 —— 那时候玩家已经通关过了。
+    /// </summary>
+    [Serializable]
+    public sealed class PlayMinGameAction : DramaAction
+    {
+        /// <summary>宿主小游戏枚举的整数值。小于 0 = 没填，运行时当这条不存在。</summary>
+        [LabelText("小游戏类型")] public int MinGameId = -1;
+
+        public override string Kind => "小游戏";
+
+        public override string Summary => $"小游戏 · {MinGameId}";
+    }
+
     /// <summary>领取任务。</summary>
     [Serializable]
     public sealed class ReceiveTaskAction : DramaAction

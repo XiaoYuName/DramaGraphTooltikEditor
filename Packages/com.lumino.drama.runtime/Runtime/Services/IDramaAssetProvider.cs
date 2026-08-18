@@ -90,6 +90,23 @@ namespace Drama.Runtime.Services
         UniTask ShowUIAsync(string uiPage, Flow.EDramaPlaybackMode mode, CancellationToken ct);
 
         /// <summary>
+        /// 进一个小游戏玩法，<b>等它玩完并回报成败</b>。<see cref="PlayMinGameAction"/> 用。
+        ///
+        /// <paramref name="minGameId"/> 是<b>宿主自己那套小游戏枚举的整数值</b> ——
+        /// 包不认识宿主有哪些小游戏，实现里转回自己的枚举即可。
+        ///
+        /// <b>失败不回来</b>：玩砸了由小游戏自己弹失败界面让玩家重试，一直重试到过关为止。
+        /// 所以本方法返回时一定是"通关了"，剧情这边没有失败分支要处理。
+        ///
+        /// <b>要等玩家点掉成功界面再返回</b>，不是玩法判定通过就返回 ——
+        /// 中间那个成功界面是给玩家看的，剧情不能抢在它前面继续演。
+        ///
+        /// <b>没有 mode 参数</b>：跳过 / 自动模式下也照玩，小游戏是玩家要动手的关卡，
+        /// 不是能快进的演出（和选项面板一个道理）。
+        /// </summary>
+        UniTask PlayMinGameAsync(int minGameId, CancellationToken ct);
+
+        /// <summary>
         /// 切换游戏内的真实场景。<see cref="ChangeGameSceneAction"/> 用。
         ///
         /// <b>要等场景真的切完再返回</b> —— 后面的指令（换背景、出立绘）都是演给新场景看的，
