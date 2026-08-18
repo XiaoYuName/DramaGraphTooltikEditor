@@ -10,60 +10,52 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 621039800177f9c4f926a12b0c863344, type: 3}
-  m_Name: Drama_001
+  m_Name: 10010
   m_EditorClassIdentifier: Drama.Runtime::Drama.Runtime.DramaScript
-  DramaId: 10000
+  DramaId: 10010
   EntryIndex: 0
   FormatVersion: 2
-  SourceGraph: Assets/Drama/Configs/Drama_001.agv
+  SourceGraph: Assets/Drama/Configs/10010.agv
   Actions:
-  - rid: 3931017262544978156
-  - rid: 3931017262544978157
-  - rid: 3931017262544978158
-  - rid: 3931017262544978159
+  - rid: 3931017262544978153
+  - rid: 3931017262544978154
+  - rid: 3931017262544978155
   references:
     version: 2
     RefIds:
-    - rid: 3931017262544978156
+    - rid: 3931017262544978153
       type: {class: ScreenTransitionAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 0
         Next: 01000000i
         InboundCount: 1
-        TransitionKind: 1
+        TransitionKind: 0
         Phase: 0
         InSeconds: 1
         OutSeconds: 0
         Color: {r: 0, g: 0, b: 0, a: 1}
         Alpha: 1
         Ease: 1
-    - rid: 3931017262544978157
+    - rid: 3931017262544978154
       type: {class: ActorHighlightAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 1
         Next: 02000000i
         InboundCount: 1
-        Gray: 0
-        DimBrightness: 1
+        Gray: 1
+        DimBrightness: 0.8
         Shrink: 1
         ShrinkScale: 0.95
-    - rid: 3931017262544978158
+    - rid: 3931017262544978155
       type: {class: ScreenTransitionAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 2
-        Next: 03000000i
+        Next: 
         InboundCount: 1
-        TransitionKind: 2
+        TransitionKind: 0
         Phase: 1
         InSeconds: 0
         OutSeconds: 1
-        Color: {r: 0, g: 0, b: 0, a: 1}
+        Color: {r: 1, g: 1, b: 1, a: 1}
         Alpha: 0
         Ease: 1
-    - rid: 3931017262544978159
-      type: {class: EndGuideDramaAction, ns: Drama.Runtime, asm: Drama.Runtime}
-      data:
-        Index: 3
-        Next: 
-        InboundCount: 1
-        GuideId: 10000
