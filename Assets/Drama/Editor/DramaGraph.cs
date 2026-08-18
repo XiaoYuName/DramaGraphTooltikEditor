@@ -121,6 +121,24 @@ namespace Drama.Editor
         Rotation,     // Angles     —— 代码里有，指令没开放
     }
 
+    /// <summary>
+    /// 「解锁」节点解锁的是什么。选哪个决定节点上出现哪些参数。
+    ///
+    /// 这是编辑器自己的概念，不是宿主枚举的镜像 —— 具体解锁哪个功能一律填
+    /// <b>宿主枚举的整数值</b>（int 端口），这套编辑器才能跨工程用。
+    /// </summary>
+    public enum UnlockTargetKind
+    {
+        /// <summary>系统功能：主界面那排按钮。</summary>
+        SystemFunction = 0,
+
+        /// <summary>角色功能：某个角色的功能面板按钮。</summary>
+        CharacterFunction = 1,
+
+        /// <summary>地图入口：大地图上的点，或点开之后的小场景。</summary>
+        Map = 2,
+    }
+
     public enum TransitionKind
     {
         None = 0,

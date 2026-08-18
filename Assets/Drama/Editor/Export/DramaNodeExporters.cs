@@ -45,6 +45,10 @@ namespace Drama.Editor.Export
                 case SceneVisibilityNode n:    ExportSceneVisibility(n, ctx); return true;
                 case EndUIDramaNode n:         ExportEndUI(n, ctx); return true;
                 case EndGuideDramaNode n:      ExportEndGuide(n, ctx); return true;
+                case UnlockNode n:                      ExportUnlock(n, ctx); return true;
+                case SystemFunctionVisibilityNode n:    ExportSystemFunctionVisibility(n, ctx); return true;
+                case CharacterFunctionVisibilityNode n: ExportCharacterFunctionVisibility(n, ctx); return true;
+                case MapVisibilityNode n:               ExportMapVisibility(n, ctx); return true;
 
                 // ------------------------------------------------ 立绘
                 // 三种立绘在图里是三个节点，到数据层收敛成同一条指令 + 一个类型字段
@@ -848,6 +852,107 @@ namespace Drama.Editor.Export
             var id = ctx.Port(n, SetMusicNode.MusicID, string.Empty);
             if (string.IsNullOrEmpty(id)) ctx.Warn("音频ID 为空", n);
             ctx.Emit(new PlayMusicAction { MusicId = id });
+        }
+
+        // ==========================================================  解锁 / 功能显隐
+        //
+        //  系统功能 / 角色功能一律收【宿主枚举的整数值】（int 端口），不在编辑器这边
+        //  镜像一份枚举做下拉框 —— 剧情系统是跨工程复用的，编辑器不该认识某个游戏
+        //  有哪些系统功能。宿主自己转回它的枚举（和「小游戏」节点一个路子）。
+
+        /// <summary>
+        /// 解锁。一个节点按「解锁类型」产出三种不同的指令 ——
+        /// 三个域的参数形状不一样（一个枚举值 / 角色+枚举值 / 两级地图ID），
+        /// 合成一条指令的话每条上会挂两份用不上的字段。
+        /// </summary>
+        static void ExportUnlock(UnlockNode n, DramaExportContext ctx)
+        {
+            var kind = ctx.Option(n, UnlockNode.TargetKind, UnlockTargetKind.SystemFunction);
+
+            switch (kind)
+            {
+                case UnlockTargetKind.SystemFunction:
+                {
+                    // 0 是合法功能值（本作是"地图"），所以"没填"的哨兵是 -1
+                    var func = ctx.Port(n, UnlockNode.SystemFunction, -1);
+                    if (func < 0) ctx.Warn("解锁系统功能没填功能值，运行时会跳过这条", n);
+
+                    ctx.Emit(new UnlockSystemFunctionAction { FunctionId = func });
+                    break;
+                }
+
+                case UnlockTargetKind.CharacterFunction:
+                {
+                    var characterId = ctx.Port(n, UnlockNode.CharacterID, -1L);
+                    var func = ctx.Port(n, UnlockNode.CharacterFunction, 0);
+
+                    if (characterId <= 0) ctx.Warn("解锁角色功能没填角色ID，运行时会跳过这条", n);
+                    // 本作那个枚举是 [Flags]，0 = 无任何功能
+                    if (func <= 0) ctx.Warn("解锁角色功能没填功能值，运行时会跳过这条", n);
+
+                    ctx.Emit(new UnlockCharacterFunctionAction
+                    {
+                        CharacterId  = characterId,
+                        FunctionFlag = func,
+                    });
+                    break;
+                }
+
+                case UnlockTargetKind.Map:
+                {
+                    var mapSceneId = ctx.Port(n, UnlockNode.MapSceneID, -1L);
+                    if (mapSceneId <= 0) ctx.Warn("解锁地图没填大地图ID，运行时会跳过这条", n);
+
+                    ctx.Emit(new UnlockMapAction
+                    {
+                        MapSceneId = mapSceneId,
+                        // -1 是合法值（= 大地图上那个入口本身），所以这里不校验
+                        SubSceneId = ctx.Port(n, UnlockNode.SubSceneID, -1L),
+                    });
+                    break;
+                }
+            }
+        }
+
+        static void ExportSystemFunctionVisibility(SystemFunctionVisibilityNode n, DramaExportContext ctx)
+        {
+            var func = ctx.Port(n, SystemFunctionVisibilityNode.SystemFunction, -1);
+            if (func < 0) ctx.Warn("系统功能显隐没填功能值，运行时会跳过这条", n);
+
+            ctx.Emit(new SystemFunctionVisibilityAction
+            {
+                FunctionId = func,
+                Visible    = ctx.Port(n, SystemFunctionVisibilityNode.Visible, true),
+            });
+        }
+
+        static void ExportCharacterFunctionVisibility(CharacterFunctionVisibilityNode n, DramaExportContext ctx)
+        {
+            var characterId = ctx.Port(n, CharacterFunctionVisibilityNode.CharacterID, -1L);
+            var func = ctx.Port(n, CharacterFunctionVisibilityNode.CharacterFunction, 0);
+
+            if (characterId <= 0) ctx.Warn("人物功能显隐没填角色ID，运行时会跳过这条", n);
+            if (func <= 0) ctx.Warn("人物功能显隐没填功能值，运行时会跳过这条", n);
+
+            ctx.Emit(new CharacterFunctionVisibilityAction
+            {
+                CharacterId  = characterId,
+                FunctionFlag = func,
+                Visible      = ctx.Port(n, CharacterFunctionVisibilityNode.Visible, true),
+            });
+        }
+
+        static void ExportMapVisibility(MapVisibilityNode n, DramaExportContext ctx)
+        {
+            var mapSceneId = ctx.Port(n, MapVisibilityNode.MapSceneID, -1L);
+            if (mapSceneId <= 0) ctx.Warn("地图显隐没填大地图ID，运行时会跳过这条", n);
+
+            ctx.Emit(new MapVisibilityAction
+            {
+                MapSceneId = mapSceneId,
+                SubSceneId = ctx.Port(n, MapVisibilityNode.SubSceneID, -1L),
+                Visible    = ctx.Port(n, MapVisibilityNode.Visible, true),
+            });
         }
 
         // ==========================================================  枚举映射
