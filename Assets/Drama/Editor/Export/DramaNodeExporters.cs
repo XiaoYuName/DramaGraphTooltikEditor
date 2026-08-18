@@ -39,6 +39,7 @@ namespace Drama.Editor.Export
                 case ReceiveTask n:            ExportReceiveTask(n, ctx); return true;
                 case ReceiveRewardNode n:      ExportReceiveReward(n, ctx); return true;
                 case ShowUINode n:             ExportShowUI(n, ctx); return true;
+                case PlayMinGameNode n:        ExportPlayMinGame(n, ctx); return true;
                 case ChangeDramaNode n:        ExportChoice(n, ctx); return true;
                 case ChangeGameScreenNode n:   ExportChangeGameScene(n, ctx); return true;
                 case SceneVisibilityNode n:    ExportSceneVisibility(n, ctx); return true;
@@ -180,6 +181,16 @@ namespace Drama.Editor.Export
             var id = ctx.Port(n, ReceiveRewardNode.RewardID, -1L);
             if (id <= 0) ctx.Warn("奖励表ID 没填，运行时会跳过这条", n);
             ctx.Emit(new ReceiveRewardAction { RewardId = id });
+        }
+
+        /// <summary>
+        /// 小游戏。填的是宿主小游戏枚举的整数值，包不认识那套枚举，原样带过去。
+        /// </summary>
+        static void ExportPlayMinGame(PlayMinGameNode n, DramaExportContext ctx)
+        {
+            var id = ctx.Port(n, PlayMinGameNode.MinGameID, -1);
+            if (id < 0) ctx.Warn("小游戏类型没填，运行时会跳过这条", n);
+            ctx.Emit(new PlayMinGameAction { MinGameId = id });
         }
 
         /// <summary>打开界面。手动模式会等玩家关掉它，自动 / 跳过不等。</summary>
