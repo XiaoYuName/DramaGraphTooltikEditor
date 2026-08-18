@@ -535,6 +535,147 @@ namespace Drama.Runtime
             string.IsNullOrEmpty(UiPage) ? "结束" : $"结束 · 打开 {UiPage}";
     }
 
+
+    // ---- 功能开放（解锁）与临时显隐
+    //
+    // 这一族的共同背景：本作的"解锁"就是<b>那个 UI 按钮显不显示</b>，没有"灰着但看得见"这一档。
+    // 所以数据上只有一个布尔状态，表现上就是 SetActive。
+    //
+    // <b>解锁和显隐是两回事，别混：</b>
+    //   解锁（Unlock*）  —— 永久的、<b>跟着存档走</b>的进度。默认全是没解锁的（新档什么按钮都没有），
+    //                       靠剧本一条条开。重复解锁是幂等的。
+    //   显隐（*Visibility）—— 剧情期间的<b>临时覆盖</b>，<b>不进存档</b>。给引导用：
+    //                       "这会儿先把别的按钮藏了，只留要点的那个"。
+    //
+    // 最终可见 = 已解锁 && 没被显隐指令藏起来。所以显隐指令<b>开不出</b>一个还没解锁的功能，
+    // 想让它露出来就得先解锁 —— 否则玩家点开的是一个后面还没做的功能。
+    //
+    // 三个域的参数形状不一样（系统功能一个枚举值、角色功能是"谁的哪个功能"、地图是两级 ID），
+    // 所以刻意<b>没有</b>收敛成"一条指令 + 一个域字段"：那样每条指令上会挂三份用不上的参数。
+
+    /// <summary>
+    /// 解锁一个系统功能（主界面下方那排按钮：地图 / 任务 / 手机 / 背包 / 回忆…）。
+    ///
+    /// <paramref name="FunctionId"/> 是<b>宿主自己那套系统功能枚举的整数值</b>
+    /// （本作是 <c>SystemFunctionType</c>）—— 包不认识某个游戏有哪些系统功能。
+    /// 和「小游戏」节点收 int 是同一个道理。
+    ///
+    /// <b>幂等，且读档静默重放期间照常执行</b>：解锁只是往已解锁集合里塞一个值，
+    /// 重放一遍的结果和原来一样。不像发奖励那种"重放就白拿一份"的指令。
+    /// </summary>
+    [Serializable]
+    public sealed class UnlockSystemFunctionAction : DramaAction
+    {
+        public override string Kind => "解锁系统功能";
+
+        /// <summary>宿主系统功能枚举的整数值。小于 0 = 没填，运行时跳过。</summary>
+        [LabelText("系统功能")] public int FunctionId = -1;
+
+        public override string Summary => $"解锁系统功能 · {FunctionId}";
+    }
+
+    /// <summary>
+    /// 解锁某个角色身上的一个功能（角色功能面板里那排按钮：对话 / 好感 / 送礼 / 厨房…）。
+    ///
+    /// 两个参数缺一不可：功能是<b>挂在角色上</b>的，"厨房"解锁的是"这个角色的厨房"。
+    ///
+    /// <paramref name="FunctionFlag"/> 是宿主那套角色功能枚举的整数值（本作是 <c>FunctionGroup</c>，
+    /// 一个 <c>[Flags]</c> 枚举，所以值是 1/2/4/8… 这种位）。<b>一条指令只开一个位</b> ——
+    /// 要开两个功能就摆两条，比让策划去算按位或靠谱。
+    ///
+    /// 解锁只是"允许显示"，能不能真显示还看角色配置表里配没配这个功能。
+    /// </summary>
+    [Serializable]
+    public sealed class UnlockCharacterFunctionAction : DramaAction
+    {
+        public override string Kind => "解锁角色功能";
+
+        [LabelText("角色ID")] public long CharacterId = -1;
+
+        /// <summary>宿主角色功能枚举的整数值（单个位）。小于等于 0 = 没填，运行时跳过。</summary>
+        [LabelText("角色功能")] public int FunctionFlag;
+
+        public override string Summary => $"解锁角色功能 · 角色{CharacterId} · {FunctionFlag}";
+    }
+
+    /// <summary>
+    /// 解锁一个地图入口。
+    ///
+    /// 两级：<see cref="SubSceneId"/> 填具体小场景就只开那一个入口（大地图上点开之后的列表里那一项），
+    /// 填 <b>-1</b> 就是开<b>大地图上那个点</b>本身。
+    /// 两级独立 —— 可以做出"地方看得见了，但里面的房间还没开"。
+    ///
+    /// 注意这和配置表里那套<b>解锁条件</b>（要多少钱 / 要什么道具 / 星期几）是两层过滤，
+    /// 都过了才进得去。本指令只管"看不看得见"。
+    /// </summary>
+    [Serializable]
+    public sealed class UnlockMapAction : DramaAction
+    {
+        public override string Kind => "解锁地图";
+
+        [LabelText("大地图ID")] public long MapSceneId = -1;
+
+        /// <summary>小地图（小场景）ID。<b>-1 = 大地图上那个入口本身</b>。</summary>
+        [LabelText("小地图ID")] public long SubSceneId = -1;
+
+        public override string Summary => SubSceneId > 0
+            ? $"解锁地图 · {MapSceneId} / {SubSceneId}"
+            : $"解锁地图 · {MapSceneId}（大地图入口）";
+    }
+
+    /// <summary>
+    /// 系统功能按钮的临时显隐。<b>不进存档</b>，语义见本区顶部的注释。
+    ///
+    /// <see cref="Visible"/> = false 把按钮藏起来；= true 把这条隐藏撤掉
+    /// （撤掉之后显不显示回归"解不解锁"，<b>不会</b>把没解锁的按钮变出来）。
+    ///
+    /// <b>读档静默重放期间照常执行</b> —— 这份意图不在存档里，正是靠重放恢复的。
+    /// </summary>
+    [Serializable]
+    public sealed class SystemFunctionVisibilityAction : DramaAction
+    {
+        public override string Kind => "系统功能显隐";
+
+        [LabelText("系统功能")] public int FunctionId = -1;
+        [LabelText("显示")]     public bool Visible = true;
+
+        public override string Summary => $"系统功能显隐 · {FunctionId} · {(Visible ? "显示" : "隐藏")}";
+    }
+
+    /// <summary>
+    /// 角色功能按钮的临时显隐。<b>不进存档</b>，语义见本区顶部的注释。
+    /// </summary>
+    [Serializable]
+    public sealed class CharacterFunctionVisibilityAction : DramaAction
+    {
+        public override string Kind => "角色功能显隐";
+
+        [LabelText("角色ID")]   public long CharacterId = -1;
+        [LabelText("角色功能")] public int FunctionFlag;
+        [LabelText("显示")]     public bool Visible = true;
+
+        public override string Summary =>
+            $"角色功能显隐 · 角色{CharacterId} · {FunctionFlag} · {(Visible ? "显示" : "隐藏")}";
+    }
+
+    /// <summary>
+    /// 地图入口的临时显隐。<b>不进存档</b>，语义见本区顶部的注释。
+    /// <see cref="SubSceneId"/> 填 -1 表示大地图上那个入口本身，和
+    /// <see cref="UnlockMapAction"/> 一个口径。
+    /// </summary>
+    [Serializable]
+    public sealed class MapVisibilityAction : DramaAction
+    {
+        public override string Kind => "地图显隐";
+
+        [LabelText("大地图ID")] public long MapSceneId = -1;
+        [LabelText("小地图ID")] public long SubSceneId = -1;
+        [LabelText("显示")]     public bool Visible = true;
+
+        public override string Summary => SubSceneId > 0
+            ? $"地图显隐 · {MapSceneId} / {SubSceneId} · {(Visible ? "显示" : "隐藏")}"
+            : $"地图显隐 · {MapSceneId}（入口）· {(Visible ? "显示" : "隐藏")}";
+    }
     #endregion
 
     #region 立绘

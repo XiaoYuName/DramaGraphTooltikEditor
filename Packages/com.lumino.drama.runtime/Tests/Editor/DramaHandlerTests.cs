@@ -862,6 +862,156 @@ namespace Drama.Runtime.Tests
             CollectionAssert.IsEmpty(m_S.Game.RequestedEndUIs);
         }
 
+        // ============================================================ 功能开放 / 临时显隐
+
+        [Test]
+        public void 解锁系统功能_枚举整数值原样交给宿主()
+        {
+            RunToEnd(new UnlockSystemFunctionActionHandler(),
+                     new UnlockSystemFunctionAction { FunctionId = 3 });
+
+            CollectionAssert.AreEqual(new[] { 3 }, m_S.Game.UnlockedSystemFunctions);
+        }
+
+        [Test]
+        public void 解锁系统功能_没填时什么都不做()
+        {
+            LogAssert_ExpectWarning();
+            RunToEnd(new UnlockSystemFunctionActionHandler(),
+                     new UnlockSystemFunctionAction { FunctionId = -1 });
+
+            CollectionAssert.IsEmpty(m_S.Game.UnlockedSystemFunctions);
+        }
+
+        [Test]
+        public void 解锁系统功能_读档恢复期间照常执行()
+        {
+            // 解锁是幂等的集合写入，重放一遍结果一样 —— 和发奖励那种"重放就白拿"的指令相反
+            m_S.Mode = EDramaPlaybackMode.Restoring;
+            RunToEnd(new UnlockSystemFunctionActionHandler(),
+                     new UnlockSystemFunctionAction { FunctionId = 0 });
+
+            CollectionAssert.AreEqual(new[] { 0 }, m_S.Game.UnlockedSystemFunctions,
+                                      "0 是合法的功能值（本作是地图），不能被当成没填");
+        }
+
+        [Test]
+        public void 解锁角色功能_角色和功能一起交出去()
+        {
+            RunToEnd(new UnlockCharacterFunctionActionHandler(),
+                     new UnlockCharacterFunctionAction { CharacterId = 1001, FunctionFlag = 8 });
+
+            CollectionAssert.AreEqual(new[] { (1001L, 8) }, m_S.Game.UnlockedCharacterFunctions);
+        }
+
+        [Test]
+        public void 解锁角色功能_缺角色ID时什么都不做()
+        {
+            LogAssert_ExpectWarning();
+            RunToEnd(new UnlockCharacterFunctionActionHandler(),
+                     new UnlockCharacterFunctionAction { CharacterId = -1, FunctionFlag = 8 });
+
+            CollectionAssert.IsEmpty(m_S.Game.UnlockedCharacterFunctions);
+        }
+
+        [Test]
+        public void 解锁角色功能_缺功能时什么都不做()
+        {
+            // 宿主那个枚举是 [Flags]，0 是"无任何功能"，解锁它没有意义
+            LogAssert_ExpectWarning();
+            RunToEnd(new UnlockCharacterFunctionActionHandler(),
+                     new UnlockCharacterFunctionAction { CharacterId = 1001, FunctionFlag = 0 });
+
+            CollectionAssert.IsEmpty(m_S.Game.UnlockedCharacterFunctions);
+        }
+
+        [Test]
+        public void 解锁地图_小地图填负一表示大地图入口本身()
+        {
+            RunToEnd(new UnlockMapActionHandler(),
+                     new UnlockMapAction { MapSceneId = 10000, SubSceneId = -1 });
+
+            CollectionAssert.AreEqual(new[] { (10000L, -1L) }, m_S.Game.UnlockedMaps,
+                                      "-1 是合法值，不能被当成没填过滤掉");
+        }
+
+        [Test]
+        public void 解锁地图_没填大地图ID时什么都不做()
+        {
+            LogAssert_ExpectWarning();
+            RunToEnd(new UnlockMapActionHandler(),
+                     new UnlockMapAction { MapSceneId = -1, SubSceneId = 20001 });
+
+            CollectionAssert.IsEmpty(m_S.Game.UnlockedMaps);
+        }
+
+        [Test]
+        public void 系统功能显隐_显示和隐藏都传得过去()
+        {
+            RunToEnd(new SystemFunctionVisibilityActionHandler(),
+                     new SystemFunctionVisibilityAction { FunctionId = 1, Visible = false });
+            RunToEnd(new SystemFunctionVisibilityActionHandler(),
+                     new SystemFunctionVisibilityAction { FunctionId = 1, Visible = true });
+
+            CollectionAssert.AreEqual(new[] { (1, false), (1, true) },
+                                      m_S.Game.SystemFunctionVisibilities);
+        }
+
+        [Test]
+        public void 系统功能显隐_读档恢复期间照常执行()
+        {
+            // ★ 显隐意图不进存档，正是靠静默重放恢复的 ——
+            //   要是拦掉，读档之后引导藏起来的按钮会全冒出来
+            m_S.Mode = EDramaPlaybackMode.Restoring;
+            RunToEnd(new SystemFunctionVisibilityActionHandler(),
+                     new SystemFunctionVisibilityAction { FunctionId = 2, Visible = false });
+
+            CollectionAssert.AreEqual(new[] { (2, false) }, m_S.Game.SystemFunctionVisibilities);
+        }
+
+        [Test]
+        public void 角色功能显隐_三个参数都传得过去()
+        {
+            RunToEnd(new CharacterFunctionVisibilityActionHandler(),
+                     new CharacterFunctionVisibilityAction
+                     {
+                         CharacterId = 1001, FunctionFlag = 16, Visible = false,
+                     });
+
+            CollectionAssert.AreEqual(new[] { (1001L, 16, false) },
+                                      m_S.Game.CharacterFunctionVisibilities);
+        }
+
+        [Test]
+        public void 角色功能显隐_缺参数时什么都不做()
+        {
+            LogAssert_ExpectWarning();
+            RunToEnd(new CharacterFunctionVisibilityActionHandler(),
+                     new CharacterFunctionVisibilityAction { CharacterId = 0, FunctionFlag = 16 });
+
+            CollectionAssert.IsEmpty(m_S.Game.CharacterFunctionVisibilities);
+        }
+
+        [Test]
+        public void 地图显隐_读档恢复期间照常执行()
+        {
+            m_S.Mode = EDramaPlaybackMode.Restoring;
+            RunToEnd(new MapVisibilityActionHandler(),
+                     new MapVisibilityAction { MapSceneId = 10000, SubSceneId = 20001, Visible = false });
+
+            CollectionAssert.AreEqual(new[] { (10000L, 20001L, false) }, m_S.Game.MapVisibilities);
+        }
+
+        [Test]
+        public void 地图显隐_没填大地图ID时什么都不做()
+        {
+            LogAssert_ExpectWarning();
+            RunToEnd(new MapVisibilityActionHandler(),
+                     new MapVisibilityAction { MapSceneId = 0, SubSceneId = -1 });
+
+            CollectionAssert.IsEmpty(m_S.Game.MapVisibilities);
+        }
+
         static void LogAssert_ExpectWarning() =>
             UnityEngine.TestTools.LogAssert.Expect(LogType.Warning, new System.Text.RegularExpressions.Regex(".*"));
     }

@@ -142,6 +142,62 @@ namespace Drama.Runtime.Services
         /// 每次场景就绪时都要按最后一次的意图重新应用。
         /// </summary>
         void SetSceneVisibility(bool showNpc, bool showSceneUI);
+
+        // ==================================================== 功能开放 / 临时显隐
+        //
+        // 本作的"解锁"就是那个 UI 按钮显不显示（没有"灰着但看得见"这一档），
+        // 所以这六个口子最终都落在 SetActive 上。两组的区别很重要：
+        //
+        //   Unlock*            永久进度，<b>要写进存档</b>。默认全都没解锁，靠剧本一条条开。
+        //                      必须幂等 —— 读档静默重放会把整段剧情重走一遍。
+        //   Set*Visible        剧情期间的临时覆盖，<b>不要写进存档</b>。给引导用。
+        //
+        // 实现里最终可见性建议算成：<b>已解锁 && 没被藏</b>。
+        // 也就是说 Set*Visible(true) 只是"撤掉隐藏"，不该把一个没解锁的功能变出来。
+        //
+        // 三个域的 ID 形状不一样，所以是六个方法而不是一个带枚举的大方法 ——
+        // 那样每个调用点都得传三个用不上的参数。
+
+        /// <summary>
+        /// 解锁一个系统功能（主界面那排按钮）。<see cref="UnlockSystemFunctionAction"/> 用。
+        ///
+        /// <paramref name="systemFunctionValue"/> 是<b>宿主自己那套系统功能枚举的整数值</b>，
+        /// 实现里转回自己的枚举即可 —— 和 <see cref="PlayMinGameAsync"/> 收 int 是一个道理。
+        /// </summary>
+        void UnlockSystemFunction(int systemFunctionValue);
+
+        /// <summary>
+        /// 解锁某个角色身上的一个功能。<see cref="UnlockCharacterFunctionAction"/> 用。
+        ///
+        /// <paramref name="functionValue"/> 是宿主角色功能枚举的整数值，<b>一次只开一个</b>
+        /// （本作那个枚举是 <c>[Flags]</c>，所以传进来的是单个位）。
+        /// </summary>
+        void UnlockCharacterFunction(long characterId, int functionValue);
+
+        /// <summary>
+        /// 解锁一个地图入口。<see cref="UnlockMapAction"/> 用。
+        /// </summary>
+        /// <param name="subSceneId">小地图（小场景）ID。<b>-1 = 大地图上那个入口本身</b>。</param>
+        void UnlockMap(long mapSceneId, long subSceneId);
+
+        /// <summary>
+        /// 系统功能按钮的临时显隐。<see cref="SystemFunctionVisibilityAction"/> 用。
+        /// <b>不要进存档</b>，理由见本区顶部。
+        /// </summary>
+        void SetSystemFunctionVisible(int systemFunctionValue, bool visible);
+
+        /// <summary>
+        /// 角色功能按钮的临时显隐。<see cref="CharacterFunctionVisibilityAction"/> 用。
+        /// <b>不要进存档</b>，理由见本区顶部。
+        /// </summary>
+        void SetCharacterFunctionVisible(long characterId, int functionValue, bool visible);
+
+        /// <summary>
+        /// 地图入口的临时显隐。<see cref="MapVisibilityAction"/> 用。
+        /// <b>不要进存档</b>，理由见本区顶部。
+        /// </summary>
+        /// <param name="subSceneId">小地图（小场景）ID。<b>-1 = 大地图上那个入口本身</b>。</param>
+        void SetMapVisible(long mapSceneId, long subSceneId, bool visible);
     }
 
     /// <summary>

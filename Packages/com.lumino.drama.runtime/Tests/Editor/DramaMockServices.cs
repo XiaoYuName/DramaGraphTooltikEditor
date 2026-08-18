@@ -449,6 +449,37 @@ namespace Drama.Runtime.Tests
 
         public void SetSceneVisibility(bool showNpc, bool showSceneUI) =>
             SceneVisibilities.Add((showNpc, showSceneUI));
+
+        // ---- 功能开放 / 临时显隐
+        public readonly List<int> UnlockedSystemFunctions = new List<int>();
+        public readonly List<(long CharacterId, int FunctionValue)> UnlockedCharacterFunctions =
+            new List<(long, int)>();
+        public readonly List<(long MapSceneId, long SubSceneId)> UnlockedMaps =
+            new List<(long, long)>();
+        public readonly List<(int FunctionValue, bool Visible)> SystemFunctionVisibilities =
+            new List<(int, bool)>();
+        public readonly List<(long CharacterId, int FunctionValue, bool Visible)> CharacterFunctionVisibilities =
+            new List<(long, int, bool)>();
+        public readonly List<(long MapSceneId, long SubSceneId, bool Visible)> MapVisibilities =
+            new List<(long, long, bool)>();
+
+        public void UnlockSystemFunction(int systemFunctionValue) =>
+            UnlockedSystemFunctions.Add(systemFunctionValue);
+
+        public void UnlockCharacterFunction(long characterId, int functionValue) =>
+            UnlockedCharacterFunctions.Add((characterId, functionValue));
+
+        public void UnlockMap(long mapSceneId, long subSceneId) =>
+            UnlockedMaps.Add((mapSceneId, subSceneId));
+
+        public void SetSystemFunctionVisible(int systemFunctionValue, bool visible) =>
+            SystemFunctionVisibilities.Add((systemFunctionValue, visible));
+
+        public void SetCharacterFunctionVisible(long characterId, int functionValue, bool visible) =>
+            CharacterFunctionVisibilities.Add((characterId, functionValue, visible));
+
+        public void SetMapVisible(long mapSceneId, long subSceneId, bool visible) =>
+            MapVisibilities.Add((mapSceneId, subSceneId, visible));
     }
 
     /// <summary>把上面这堆一次性装配好。</summary>

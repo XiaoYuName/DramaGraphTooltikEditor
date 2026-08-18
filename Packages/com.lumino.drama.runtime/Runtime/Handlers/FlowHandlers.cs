@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Drama.Runtime.Flow;
+using UnityEngine;
 
 namespace Drama.Runtime.Handlers
 {
@@ -229,6 +230,128 @@ namespace Drama.Runtime.Handlers
         protected override UniTask RunAsync(SceneVisibilityAction a, IDramaContext ctx, CancellationToken ct)
         {
             ctx.Game?.SetSceneVisibility(a.ShowNpc, a.ShowSceneUI);
+            return UniTask.CompletedTask;
+        }
+    }
+
+    // ==================================================== 功能开放 / 临时显隐
+    //
+    // 六条都是"把参数原样递给宿主"的一行 Handler，没有等待、不影响流程走向。
+    //
+    // ⚠ 六条都<b>刻意不拦 `Restoring`</b>（读档的静默重放），和发奖励 / 领任务那种相反：
+    //   解锁是幂等的集合写入，重放一遍结果一样；
+    //   显隐意图<b>根本不在存档里</b>，正是靠重放才能恢复到退出时的样子。
+    //   —— 这两条要是拦了，读档之后引导藏起来的按钮会全冒出来。
+
+    /// <summary>
+    /// 解锁系统功能。见 <see cref="Services.IDramaGameBridge.UnlockSystemFunction"/>。
+    /// </summary>
+    public sealed class UnlockSystemFunctionActionHandler : DramaSimpleActionHandler<UnlockSystemFunctionAction>
+    {
+        protected override UniTask RunAsync(UnlockSystemFunctionAction a, IDramaContext ctx, CancellationToken ct)
+        {
+            if (a.FunctionId < 0)
+            {
+                Debug.LogWarning($"[Drama] #{a.Index} 解锁系统功能没填功能，已跳过");
+                return UniTask.CompletedTask;
+            }
+
+            ctx.Game?.UnlockSystemFunction(a.FunctionId);
+            return UniTask.CompletedTask;
+        }
+    }
+
+    /// <summary>
+    /// 解锁角色功能。见 <see cref="Services.IDramaGameBridge.UnlockCharacterFunction"/>。
+    /// </summary>
+    public sealed class UnlockCharacterFunctionActionHandler : DramaSimpleActionHandler<UnlockCharacterFunctionAction>
+    {
+        protected override UniTask RunAsync(UnlockCharacterFunctionAction a, IDramaContext ctx, CancellationToken ct)
+        {
+            // 两个参数缺一不可：功能是挂在角色上的，"厨房"解锁的是"这个角色的厨房"
+            if (a.CharacterId <= 0 || a.FunctionFlag <= 0)
+            {
+                Debug.LogWarning($"[Drama] #{a.Index} 解锁角色功能的角色ID / 功能没填全" +
+                                 $"（角色{a.CharacterId}、功能{a.FunctionFlag}），已跳过");
+                return UniTask.CompletedTask;
+            }
+
+            ctx.Game?.UnlockCharacterFunction(a.CharacterId, a.FunctionFlag);
+            return UniTask.CompletedTask;
+        }
+    }
+
+    /// <summary>
+    /// 解锁地图入口。见 <see cref="Services.IDramaGameBridge.UnlockMap"/>。
+    /// </summary>
+    public sealed class UnlockMapActionHandler : DramaSimpleActionHandler<UnlockMapAction>
+    {
+        protected override UniTask RunAsync(UnlockMapAction a, IDramaContext ctx, CancellationToken ct)
+        {
+            // 小地图ID 允许是 -1（那是"大地图上那个入口本身"），大地图ID 不允许
+            if (a.MapSceneId <= 0)
+            {
+                Debug.LogWarning($"[Drama] #{a.Index} 解锁地图没填大地图ID，已跳过");
+                return UniTask.CompletedTask;
+            }
+
+            ctx.Game?.UnlockMap(a.MapSceneId, a.SubSceneId);
+            return UniTask.CompletedTask;
+        }
+    }
+
+    /// <summary>
+    /// 系统功能按钮的临时显隐。见 <see cref="Services.IDramaGameBridge.SetSystemFunctionVisible"/>。
+    /// </summary>
+    public sealed class SystemFunctionVisibilityActionHandler : DramaSimpleActionHandler<SystemFunctionVisibilityAction>
+    {
+        protected override UniTask RunAsync(SystemFunctionVisibilityAction a, IDramaContext ctx, CancellationToken ct)
+        {
+            if (a.FunctionId < 0)
+            {
+                Debug.LogWarning($"[Drama] #{a.Index} 系统功能显隐没填功能，已跳过");
+                return UniTask.CompletedTask;
+            }
+
+            ctx.Game?.SetSystemFunctionVisible(a.FunctionId, a.Visible);
+            return UniTask.CompletedTask;
+        }
+    }
+
+    /// <summary>
+    /// 角色功能按钮的临时显隐。见 <see cref="Services.IDramaGameBridge.SetCharacterFunctionVisible"/>。
+    /// </summary>
+    public sealed class CharacterFunctionVisibilityActionHandler
+        : DramaSimpleActionHandler<CharacterFunctionVisibilityAction>
+    {
+        protected override UniTask RunAsync(CharacterFunctionVisibilityAction a, IDramaContext ctx, CancellationToken ct)
+        {
+            if (a.CharacterId <= 0 || a.FunctionFlag <= 0)
+            {
+                Debug.LogWarning($"[Drama] #{a.Index} 角色功能显隐的角色ID / 功能没填全" +
+                                 $"（角色{a.CharacterId}、功能{a.FunctionFlag}），已跳过");
+                return UniTask.CompletedTask;
+            }
+
+            ctx.Game?.SetCharacterFunctionVisible(a.CharacterId, a.FunctionFlag, a.Visible);
+            return UniTask.CompletedTask;
+        }
+    }
+
+    /// <summary>
+    /// 地图入口的临时显隐。见 <see cref="Services.IDramaGameBridge.SetMapVisible"/>。
+    /// </summary>
+    public sealed class MapVisibilityActionHandler : DramaSimpleActionHandler<MapVisibilityAction>
+    {
+        protected override UniTask RunAsync(MapVisibilityAction a, IDramaContext ctx, CancellationToken ct)
+        {
+            if (a.MapSceneId <= 0)
+            {
+                Debug.LogWarning($"[Drama] #{a.Index} 地图显隐没填大地图ID，已跳过");
+                return UniTask.CompletedTask;
+            }
+
+            ctx.Game?.SetMapVisible(a.MapSceneId, a.SubSceneId, a.Visible);
             return UniTask.CompletedTask;
         }
     }

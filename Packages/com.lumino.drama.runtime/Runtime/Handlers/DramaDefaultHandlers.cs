@@ -29,6 +29,14 @@ namespace Drama.Runtime.Handlers
             registry.Register(new EndUIDramaActionHandler());
             registry.Register(new EndGuideDramaActionHandler());
 
+            // ---- 功能开放 / 临时显隐（解锁进存档、显隐不进，两组都不拦读档重放）
+            registry.Register(new UnlockSystemFunctionActionHandler());
+            registry.Register(new UnlockCharacterFunctionActionHandler());
+            registry.Register(new UnlockMapActionHandler());
+            registry.Register(new SystemFunctionVisibilityActionHandler());
+            registry.Register(new CharacterFunctionVisibilityActionHandler());
+            registry.Register(new MapVisibilityActionHandler());
+
             // ---- 对话
             registry.Register(new TalkActionHandler());
             registry.Register(new TalkShowActionHandler());
