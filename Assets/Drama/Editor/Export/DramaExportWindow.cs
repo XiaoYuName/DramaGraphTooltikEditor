@@ -103,11 +103,160 @@ namespace Drama.Editor.Export
 
         // ==================================================== 日志
 
+        [HideInInspector]
+        public string Log = "（还没有执行过导出）";
+
+        /// <summary>只显示带 ⚠ / ✘ 的行，剧本多的时候用来直接找问题。</summary>
+        bool _onlyProblems;
+
+        Vector2 _logScroll;
+
+        // ---- 显示缓存 ----
+        // 日志可以有几千行，CalcSize/CalcHeight 每帧算一遍会卡；
+        // 只在文本、过滤开关或视图宽度变了的时候重算。
+        static GUIStyle _logStyle;
+        string _viewCacheKey;
+        float _measuredForWidth;
+        float _contentWidth;
+        readonly List<string> _chunks = new List<string>();
+        readonly List<float> _chunkHeights = new List<float>();
+
+        /// <summary>
+        /// 一个 IMGUI 文本控件的字符数上不去太多（文本网格顶点数有上限，超了整段直接不画），
+        /// 所以按行切成若干块分别画。
+        /// </summary>
+        const int ChunkChars = 6000;
+
         [Title("结果")]
         [PropertyOrder(20)]
-        [ShowInInspector, ReadOnly, HideLabel]
-        [MultiLineProperty(12)]
-        public string Log = "（还没有执行过导出）";
+        [OnInspectorGUI]
+        void DrawLog()
+        {
+            if (_logStyle == null)
+                _logStyle = new GUIStyle(EditorStyles.label)
+                {
+                    wordWrap = false,       // 长路径宁可横向滚动，也别折行搅乱缩进
+                    richText = false,
+                    padding = new RectOffset(4, 4, 1, 1),
+                };
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                var lines = string.IsNullOrEmpty(Log) ? 0 : Log.Split('\n').Length;
+                GUILayout.Label($"{lines} 行", EditorStyles.miniLabel);
+                GUILayout.FlexibleSpace();
+                _onlyProblems = GUILayout.Toggle(_onlyProblems, "只看问题", EditorStyles.miniButton, GUILayout.Width(64f));
+                if (GUILayout.Button("复制", EditorStyles.miniButton, GUILayout.Width(48f)))
+                    EditorGUIUtility.systemCopyBuffer = Log;
+                if (GUILayout.Button("清空", EditorStyles.miniButton, GUILayout.Width(48f)))
+                    Log = string.Empty;
+            }
+
+            RebuildViewIfNeeded();
+
+            var viewHeight = Mathf.Clamp(position.height * 0.45f, 160f, 1200f);
+            var viewRect = GUILayoutUtility.GetRect(0f, viewHeight, GUILayout.ExpandWidth(true));
+            GUI.Box(viewRect, GUIContent.none, EditorStyles.helpBox);
+
+            var inner = new Rect(viewRect.x + 1f, viewRect.y + 1f, viewRect.width - 2f, viewRect.height - 2f);
+            MeasureIfNeeded(inner.width - 16f);
+
+            var total = 0f;
+            for (int i = 0; i < _chunkHeights.Count; i++) total += _chunkHeights[i];
+
+            _logScroll = GUI.BeginScrollView(inner, _logScroll,
+                new Rect(0f, 0f, _contentWidth, total));
+
+            var y = 0f;
+            for (int i = 0; i < _chunks.Count; i++)
+            {
+                var h = _chunkHeights[i];
+                // 视野外的块不画：几千行的日志滚起来才不掉帧
+                if (y + h >= _logScroll.y && y <= _logScroll.y + inner.height)
+                    EditorGUI.SelectableLabel(new Rect(0f, y, _contentWidth, h), _chunks[i], _logStyle);
+                y += h;
+            }
+
+            GUI.EndScrollView();
+        }
+
+        void RebuildViewIfNeeded()
+        {
+            var key = (_onlyProblems ? "P" : "A") + (Log?.Length ?? 0) + "|" + (Log ?? string.Empty).GetHashCode();
+            if (key == _viewCacheKey) return;
+            _viewCacheKey = key;
+
+            var text = _onlyProblems ? FilterProblems(Log) : (Log ?? string.Empty);
+
+            _chunks.Clear();
+            var sb = new StringBuilder();
+            foreach (var line in text.Split('\n'))
+            {
+                if (sb.Length > 0 && sb.Length + line.Length > ChunkChars)
+                {
+                    _chunks.Add(sb.ToString().TrimEnd('\n'));
+                    sb.Clear();
+                }
+                sb.Append(line).Append('\n');
+            }
+            if (sb.Length > 0) _chunks.Add(sb.ToString().TrimEnd('\n'));
+
+            _measuredForWidth = -1f;   // 逼着重新量一遍
+        }
+
+        void MeasureIfNeeded(float viewWidth)
+        {
+            if (Mathf.Approximately(viewWidth, _measuredForWidth)) return;
+            _measuredForWidth = viewWidth;
+
+            _contentWidth = Mathf.Max(viewWidth, 64f);
+            for (int i = 0; i < _chunks.Count; i++)
+                _contentWidth = Mathf.Max(_contentWidth, _logStyle.CalcSize(new GUIContent(_chunks[i])).x + 8f);
+
+            _chunkHeights.Clear();
+            for (int i = 0; i < _chunks.Count; i++)
+                _chunkHeights.Add(_logStyle.CalcHeight(new GUIContent(_chunks[i]), _contentWidth));
+        }
+
+        /// <summary>
+        /// 挑出 ⚠ / ✘ 的行。缩进的问题行本身看不出是哪个剧本的，
+        /// 所以顺带把它上面那行剧本名带出来。
+        /// </summary>
+        static string FilterProblems(string log)
+        {
+            if (string.IsNullOrEmpty(log)) return string.Empty;
+
+            var sb = new StringBuilder();
+            string pendingGraph = null;
+
+            foreach (var raw in log.Split('\n'))
+            {
+                var line = raw.TrimEnd('\r');
+
+                if (line.StartsWith("  ✔", StringComparison.Ordinal))
+                {
+                    pendingGraph = line;
+                    continue;
+                }
+                if (line.StartsWith("  ✘", StringComparison.Ordinal))
+                {
+                    sb.AppendLine(line);
+                    pendingGraph = null;
+                    continue;
+                }
+
+                if (line.IndexOf('⚠') < 0 && line.IndexOf('✘') < 0) continue;
+
+                if (pendingGraph != null)
+                {
+                    sb.AppendLine(pendingGraph);
+                    pendingGraph = null;
+                }
+                sb.AppendLine(line);
+            }
+
+            return sb.Length == 0 ? "没有警告或错误。" : sb.ToString();
+        }
 
         // ==================================================== 实现
 
@@ -207,6 +356,7 @@ namespace Drama.Editor.Export
             sb.AppendLine();
             sb.AppendLine($"完成：成功 {ok}，失败 {failed}");
             Log = sb.ToString();
+            _logScroll = Vector2.zero;
 
             if (writeAsset && PingAfterExport && !string.IsNullOrEmpty(lastAsset))
             {
