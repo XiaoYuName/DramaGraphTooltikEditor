@@ -17,57 +17,57 @@ MonoBehaviour:
   FormatVersion: 2
   SourceGraph: Assets/Drama/Configs/10011.agv
   Actions:
-  - rid: 3931017330350358862
-  - rid: 3931017330350358863
-  - rid: 3931017330350358864
-  - rid: 3931017330350358865
-  - rid: 3931017330350358866
-  - rid: 3931017330350358867
-  - rid: 3931017330350358868
-  - rid: 3931017330350358869
-  - rid: 3931017330350358870
-  - rid: 3931017330350358871
-  - rid: 3931017330350358872
-  - rid: 3931017330350358873
-  - rid: 3931017330350358874
-  - rid: 3931017330350358875
-  - rid: 3931017330350358876
-  - rid: 3931017330350358877
-  - rid: 3931017330350358878
-  - rid: 3931017330350358879
-  - rid: 3931017330350358880
-  - rid: 3931017330350358881
-  - rid: 3931017330350358882
-  - rid: 3931017330350358883
-  - rid: 3931017330350358884
-  - rid: 3931017330350358885
-  - rid: 3931017330350358886
-  - rid: 3931017330350358887
-  - rid: 3931017330350358888
-  - rid: 3931017330350358889
-  - rid: 3931017330350358890
-  - rid: 3931017330350358891
-  - rid: 3931017330350358892
-  - rid: 3931017330350358893
-  - rid: 3931017330350358894
-  - rid: 3931017330350358895
-  - rid: 3931017330350358896
-  - rid: 3931017330350358897
-  - rid: 3931017330350358898
-  - rid: 3931017330350358899
-  - rid: 3931017330350358900
-  - rid: 3931017330350358901
-  - rid: 3931017330350358902
-  - rid: 3931017330350358903
-  - rid: 3931017330350358904
-  - rid: 3931017330350358905
-  - rid: 3931017330350358906
-  - rid: 3931017330350358907
-  - rid: 3931017330350358908
+  - rid: 3931017398762602721
+  - rid: 3931017398762602722
+  - rid: 3931017398762602723
+  - rid: 3931017398762602724
+  - rid: 3931017398762602725
+  - rid: 3931017398762602726
+  - rid: 3931017398762602727
+  - rid: 3931017398762602728
+  - rid: 3931017398762602729
+  - rid: 3931017398762602730
+  - rid: 3931017398762602731
+  - rid: 3931017398762602732
+  - rid: 3931017398762602733
+  - rid: 3931017398762602734
+  - rid: 3931017398762602735
+  - rid: 3931017398762602736
+  - rid: 3931017398762602737
+  - rid: 3931017398762602738
+  - rid: 3931017398762602739
+  - rid: 3931017398762602740
+  - rid: 3931017398762602741
+  - rid: 3931017398762602742
+  - rid: 3931017398762602743
+  - rid: 3931017398762602744
+  - rid: 3931017398762602745
+  - rid: 3931017398762602746
+  - rid: 3931017398762602747
+  - rid: 3931017398762602748
+  - rid: 3931017398762602749
+  - rid: 3931017398762602750
+  - rid: 3931017398762602751
+  - rid: 3931017398762602752
+  - rid: 3931017398762602753
+  - rid: 3931017398762602754
+  - rid: 3931017398762602755
+  - rid: 3931017398762602756
+  - rid: 3931017398762602757
+  - rid: 3931017398762602758
+  - rid: 3931017398762602759
+  - rid: 3931017398762602760
+  - rid: 3931017398762602761
+  - rid: 3931017398762602762
+  - rid: 3931017398762602763
+  - rid: 3931017398762602764
+  - rid: 3931017398762602765
+  - rid: 3931017398762602766
+  - rid: 3931017398762602767
   references:
     version: 2
     RefIds:
-    - rid: 3931017330350358862
+    - rid: 3931017398762602721
       type: {class: ScreenTransitionAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 0
@@ -80,7 +80,7 @@ MonoBehaviour:
         Color: {r: 0, g: 0, b: 0, a: 1}
         Alpha: 1
         Ease: 1
-    - rid: 3931017330350358863
+    - rid: 3931017398762602722
       type: {class: ActorHighlightAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 1
@@ -90,7 +90,7 @@ MonoBehaviour:
         DimBrightness: 0.8
         Shrink: 1
         ShrinkScale: 0.95
-    - rid: 3931017330350358864
+    - rid: 3931017398762602723
       type: {class: ScreenTransitionAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 2
@@ -103,7 +103,7 @@ MonoBehaviour:
         Color: {r: 1, g: 1, b: 1, a: 1}
         Alpha: 0
         Ease: 1
-    - rid: 3931017330350358865
+    - rid: 3931017398762602724
       type: {class: ActorShowAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 3
@@ -117,7 +117,7 @@ MonoBehaviour:
         Scale: {x: 1, y: 1}
         DurationSeconds: 0.6
         Ease: 1
-    - rid: 3931017330350358866
+    - rid: 3931017398762602725
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 4
@@ -137,7 +137,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358867
+    - rid: 3931017398762602726
       type: {class: ActorMoveAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 5
@@ -147,7 +147,7 @@ MonoBehaviour:
         Position: {x: 600, y: 0}
         DurationSeconds: 1
         Ease: 1
-    - rid: 3931017330350358868
+    - rid: 3931017398762602727
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 6
@@ -167,7 +167,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358869
+    - rid: 3931017398762602728
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 7
@@ -187,7 +187,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358870
+    - rid: 3931017398762602729
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 8
@@ -207,7 +207,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358871
+    - rid: 3931017398762602730
       type: {class: ActorMoveAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 9
@@ -217,7 +217,7 @@ MonoBehaviour:
         Position: {x: -1000, y: 0}
         DurationSeconds: 1
         Ease: 1
-    - rid: 3931017330350358872
+    - rid: 3931017398762602731
       type: {class: ActorMoveAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 10
@@ -227,7 +227,7 @@ MonoBehaviour:
         Position: {x: 1200, y: 0}
         DurationSeconds: 1
         Ease: 1
-    - rid: 3931017330350358873
+    - rid: 3931017398762602732
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 11
@@ -247,14 +247,14 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358874
+    - rid: 3931017398762602733
       type: {class: ReceiveRewardAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 12
         Next: 0d000000i
         InboundCount: 1
         RewardId: 100001
-    - rid: 3931017330350358875
+    - rid: 3931017398762602734
       type: {class: ActorShowAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 13
@@ -268,7 +268,7 @@ MonoBehaviour:
         Scale: {x: 1, y: 1}
         DurationSeconds: 0.6
         Ease: 1
-    - rid: 3931017330350358876
+    - rid: 3931017398762602735
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 14
@@ -288,7 +288,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358877
+    - rid: 3931017398762602736
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 15
@@ -308,7 +308,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358878
+    - rid: 3931017398762602737
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 16
@@ -328,7 +328,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358879
+    - rid: 3931017398762602738
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 17
@@ -348,7 +348,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358880
+    - rid: 3931017398762602739
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 18
@@ -368,7 +368,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358881
+    - rid: 3931017398762602740
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 19
@@ -388,7 +388,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358882
+    - rid: 3931017398762602741
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 20
@@ -408,7 +408,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358883
+    - rid: 3931017398762602742
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 21
@@ -428,7 +428,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358884
+    - rid: 3931017398762602743
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 22
@@ -448,7 +448,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358885
+    - rid: 3931017398762602744
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 23
@@ -468,7 +468,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358886
+    - rid: 3931017398762602745
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 24
@@ -488,7 +488,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358887
+    - rid: 3931017398762602746
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 25
@@ -508,7 +508,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358888
+    - rid: 3931017398762602747
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 26
@@ -528,7 +528,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358889
+    - rid: 3931017398762602748
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 27
@@ -548,7 +548,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358890
+    - rid: 3931017398762602749
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 28
@@ -568,7 +568,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358891
+    - rid: 3931017398762602750
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 29
@@ -588,7 +588,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358892
+    - rid: 3931017398762602751
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 30
@@ -608,7 +608,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358893
+    - rid: 3931017398762602752
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 31
@@ -628,7 +628,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358894
+    - rid: 3931017398762602753
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 32
@@ -648,7 +648,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358895
+    - rid: 3931017398762602754
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 33
@@ -668,7 +668,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358896
+    - rid: 3931017398762602755
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 34
@@ -688,7 +688,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358897
+    - rid: 3931017398762602756
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 35
@@ -708,7 +708,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358898
+    - rid: 3931017398762602757
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 36
@@ -728,7 +728,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358899
+    - rid: 3931017398762602758
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 37
@@ -748,7 +748,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358900
+    - rid: 3931017398762602759
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 38
@@ -768,7 +768,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358901
+    - rid: 3931017398762602760
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 39
@@ -788,7 +788,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358902
+    - rid: 3931017398762602761
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 40
@@ -808,7 +808,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358903
+    - rid: 3931017398762602762
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 41
@@ -828,7 +828,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358904
+    - rid: 3931017398762602763
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 42
@@ -848,7 +848,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358905
+    - rid: 3931017398762602764
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 43
@@ -868,7 +868,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358906
+    - rid: 3931017398762602765
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 44
@@ -888,7 +888,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358907
+    - rid: 3931017398762602766
       type: {class: TalkAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 45
@@ -908,7 +908,7 @@ MonoBehaviour:
         Balloon: 0
         AutoWaitSeconds: 0
         NameColor: {r: 1, g: 1, b: 1, a: 1}
-    - rid: 3931017330350358908
+    - rid: 3931017398762602767
       type: {class: GotoDramaAction, ns: Drama.Runtime, asm: Drama.Runtime}
       data:
         Index: 46
